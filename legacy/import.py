@@ -33,7 +33,7 @@ def import_from_legacy():
 
         # Card Faces
         faces = DataFrame()
-        faces.insert(0, 'bundle', data_legacy['types'].values())
+        faces.insert(0, 'key', data_legacy['types'].values())
         faces.insert(0, 'name', data_legacy['types'].keys())
         faces.to_parquet('./data/faces.parquet')
 
