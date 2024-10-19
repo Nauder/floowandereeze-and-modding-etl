@@ -1,1 +1,2 @@
 pandas~=2.2.2
+UnityPy==1.10.16
