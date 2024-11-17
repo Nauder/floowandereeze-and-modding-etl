@@ -11,7 +11,6 @@ def sort_sprite_list(sprite_list: list) -> dict:
     sorted_sprites = {}
 
     for sprite in sprite_list:
-        print(sprite)
         sprite_art = fetch_image(sprite, "spt")
 
         if sprite_art.width == 128:
@@ -21,14 +20,16 @@ def sort_sprite_list(sprite_list: list) -> dict:
         elif sprite_art.width == 512:
             sorted_sprites['large'] = sprite
 
-    return sorted_sprites
+    if len(sorted_sprites.keys()) == 3:
+        return sorted_sprites
+    else:
+        raise ValueError(f'Failed to sort sprites: {sprite_list}')
 
 
 def sort_icon_sizes(icons: list) -> list:
     sorted_icons = []
 
     for icon in icons:
-        print(icon)
         sorted_icons.append(sort_sprite_list(icon))
 
     return sorted_icons
@@ -44,16 +45,22 @@ def import_from_legacy():
         sleeves.insert(0, 'bundle', data_legacy['adress'])
         sleeves.to_parquet('./data/sleeves.parquet')
 
+        print('Legacy Sleeves imported')
+
         # Cards
         cards = DataFrame()
         cards.insert(0, 'name', data_legacy['name'].keys())
         cards.insert(0, 'bundle', data_legacy['name'].values())
         cards.to_parquet('./data/cards.parquet')
 
+        print('Legacy Cards imported')
+
         # Fields
         fields = DataFrame()
         fields.insert(0, 'bundle', data_legacy['field'])
         fields.to_parquet('./data/fields.parquet')
+
+        print('Legacy Fields imported')
 
         # Wallpapers
         wallpapers = DataFrame()
@@ -62,11 +69,15 @@ def import_from_legacy():
         wallpapers.insert(0, 'name', data_legacy['wallpaper_names'])
         wallpapers.to_parquet('./data/wallpapers.parquet')
 
+        print('Legacy Wallpapers imported')
+
         # Card Faces
         faces = DataFrame()
         faces.insert(0, 'key', data_legacy['types'].values())
         faces.insert(0, 'name', data_legacy['types'].keys())
         faces.to_parquet('./data/faces.parquet')
+
+        print('Legacy Faces imported')
 
         # Icons
         icons = DataFrame()
@@ -77,6 +88,7 @@ def import_from_legacy():
         icons.insert(0, 'name', data_legacy['icons'].keys())
         icons.to_parquet('./data/icons.parquet')
 
+        print('Legacy Icons imported')
 
 if __name__ == '__main__':
     import_from_legacy()

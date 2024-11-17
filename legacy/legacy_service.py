@@ -37,8 +37,6 @@ def fetch_image(bundle: str, aspect: str, miss=False, simple_aspect=(0, 0)) -> I
     """
     env_path = prepare_environment(miss, bundle)
 
-    print(env_path)
-
     env = unity_load(env_path)
 
     for obj in env.objects:
