@@ -2,6 +2,8 @@ import json
 import logging
 import os
 from concurrent.futures import ThreadPoolExecutor
+from itertools import chain
+from os.path import join, isfile
 
 from dateutil.utils import today
 from pandas import DataFrame
@@ -68,38 +70,46 @@ class DataService:
             field_position_prompt = 'Was the field center:\n[1] On the top\n[2] On the bottom\n[3] Neither\n> '
             field_flip_prompt = 'Was the field top:\n[1] On the top\n[2] On the bottom\n[3] Neither\n> '
 
-            # for field in sorted(data['field']):
-            #     field_data = {}
-            #     field_image = self.game_service.unity_servie.fetch_image(field, 'fld')
-            #     field_image.show()
-            #
-            #     field_type = 0
-            #     while field_type not in ['1', '2', '3']:
-            #         field_type = input(field_position_prompt)
-            #         match field_type:
-            #             case '1':
-            #                 field_data['bottom'] = False
-            #             case '2':
-            #                 field_data['bottom'] = True
-            #             case '3':
-            #                 pass # Skip unsupported fields
-            #
-            #     if field_type in ['1', '2']:
-            #         field_type = 0
-            #         while field_type not in ['1', '2']:
-            #             field_type = input(field_flip_prompt)
-            #
-            #             match field_type:
-            #                 case '1':
-            #                     field_data['flipped'] = False
-            #                 case '2':
-            #                     field_data['flipped'] = True
-            #
-            #         fields[field] = field_data
-            #
-            #     print('\n')
-            #
-            # data['field'] = fields
+            sort_fields = input(f'Sort fields? [Y]es [N]o: ')
+            if sort_fields.lower() == 'y':
+                for field in sorted(data['field']):
+                    field_data = {}
+                    field_image = self.game_service.unity_servie.fetch_image(field, 'fld')
+                    field_image.show()
+
+                    field_type = 0
+                    while field_type not in ['1', '2', '3']:
+                        field_type = input(field_position_prompt)
+                        match field_type:
+                            case '1':
+                                field_data['bottom'] = False
+                            case '2':
+                                field_data['bottom'] = True
+                            case '3':
+                                pass # Skip unsupported fields
+
+                    if field_type in ['1', '2']:
+                        field_type = 0
+                        while field_type not in ['1', '2']:
+                            field_type = input(field_flip_prompt)
+
+                            match field_type:
+                                case '1':
+                                    field_data['flipped'] = False
+                                case '2':
+                                    field_data['flipped'] = True
+
+                        fields[field] = field_data
+
+                    print('\n')
+            else:
+                self.logger.info('Attempting to use existing field data')
+                if isfile('./etl/services/temp/data.json'):
+                    with open('./etl/services/temp/data.json', "r", encoding='utf-8') as clean_file:
+                        clean_file_data = json.load(clean_file)
+                        fields = clean_file_data['field']
+
+            data['field'] = fields
             with open('./etl/services/temp/data.json', "w", encoding='utf-8') as clean_file:
                 json.dump(data, clean_file)
 
@@ -110,7 +120,12 @@ class DataService:
         self.logger.info('Getting AssetBundles data...')
 
         all_dirs = []
-        for _, dirs, _ in os.walk(GAME_PATH):
+        for _, dirs, _ in chain(os.walk(GAME_PATH), os.walk(join(
+                GAME_PATH,
+                "masterduel_Data",
+                "StreamingAssets",
+                "AssetBundle"
+            ))):
             all_dirs.extend(dirs)
 
         def process_dirs(dir_list):
@@ -198,8 +213,9 @@ class DataService:
         with open('./etl/services/temp/card_name.bytes.dec.json', 'r', encoding='utf-8') as names_json:
             names = self.add_suffix(json.load(names_json))
 
-        with open('./etl/services/temp/card_prop.bytes.Card_IDs.dec.json', 'r', encoding='utf-8') as props_json:
-            id_names = dict(zip(json.load(props_json), names))
+        with (open('./etl/services/temp/card_prop.bytes.Card_IDs.dec.json', 'r', encoding='utf-8') as props_json,
+              open('./etl/services/temp/card_desc.bytes.dec.json', 'r', encoding='utf-8') as desc_json):
+            id_names = {key: [value_b, value_c] for key, value_b, value_c in zip(json.load(props_json), json.load(desc_json), names)}
             to_remove = [key for key in id_names if key in range(30000, 30100)]
 
             for key in to_remove:
@@ -208,7 +224,7 @@ class DataService:
         with open('./etl/services/temp/ids.json', 'r', encoding='utf-8') as ids_json:
             ids = json.load(ids_json)
             updated_card_id = self.remove_extra_suffix({
-                id_names.get(int(key), key): value for key, value in ids["card_id"].items()
+                id_names.get(int(key), key)[1]: [value, id_names.get(int(key), key)[0]] for key, value, in ids["card_id"].items()
             })
 
             ids["card_names"] = updated_card_id
@@ -228,7 +244,8 @@ class DataService:
             self.logger.info('Writing Cards...')
             cards = DataFrame()
             cards.insert(0, 'name', data['card_names'].keys())
-            cards.insert(0, 'bundle', data['card_names'].values())
+            cards.insert(0, 'bundle', [value[0] for value in data['card_names'].values()])
+            cards.insert(0, 'description', [value[1] for value in data['card_names'].values()])
             cards.to_parquet('./data/cards.parquet')
 
             self.logger.info('Writing Fields...')
@@ -276,5 +293,3 @@ class DataService:
             self.logger.info('Updating Version...')
             with open('./data/version.txt', 'w') as file:
                 file.write(today().strftime('%Y-%m-%d'))
-
-# "field": {"1621b0a7": {"bottom": false, "flipped": false}, "18415e72": {"bottom": true, "flipped": false}, "19bdd8e7": {"bottom": false, "flipped": false}, "25d61281": {"bottom": true, "flipped": false}, "2e6959e7": {"bottom": false, "flipped": true}, "509865b2": {"bottom": false, "flipped": true}, "5547c001": {"bottom": false, "flipped": true}, "5adba841": {"bottom": false, "flipped": true}, "5f040df2": {"bottom": false, "flipped": true}, "674ce4b2": {"bottom": false, "flipped": true}, "692c0a67": {"bottom": false, "flipped": true}, "81b56fbe": {"bottom": true, "flipped": false}, "846aca0d": {"bottom": false, "flipped": true}, "8bf6a24d": {"bottom": true, "flipped": false}, "b242cd98": {"bottom": true, "flipped": false}, "b79d682b": {"bottom": false, "flipped": true}, "b9fd86fe": {"bottom": false, "flipped": false}, "c2d31f18": {"bottom": false, "flipped": true}, "c32f998d": {"bottom": false, "flipped": true}, "c6f03c3e": {"bottom": false, "flipped": true}, "cd4f7758": {"bottom": false, "flipped": true}, "feb8d57e": {"bottom": false, "flipped": true}}
