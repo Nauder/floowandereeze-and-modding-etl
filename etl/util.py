@@ -1,5 +1,5 @@
 import os, sys, shutil
-
+from os.path import join
 
 # Where the game is located up to the 0000 folder
 GAME_PATH = ""
@@ -17,6 +17,13 @@ EXCLUDED_SLEEVES = [
 
 # Amount of threads to use in concurrent operations, given that the ETL is mostly I/O bound it depends on your CPU cores
 NUM_THREADS = 8
+
+STREAMING_PATH = join(
+    GAME_PATH[:-23],
+    "masterduel_Data",
+    "StreamingAssets",
+    "AssetBundle"
+)
 
 def merge_nested_dict_lists(dict1, dict2):
     for key, value in dict2['icon'].items():

@@ -2,24 +2,24 @@ import json
 import logging
 import os
 from concurrent.futures import ThreadPoolExecutor
-from itertools import chain
-from os.path import join, isfile
+from os.path import isfile
 
 from dateutil.utils import today
 from pandas import DataFrame
 
 from services.game_service import GameService
-from util import EXCLUDED_SLEEVES, GAME_PATH, merge_nested_dict_lists, merge_nested_dicts, chunkify, NUM_THREADS
+from util import EXCLUDED_SLEEVES, GAME_PATH, merge_nested_dict_lists, merge_nested_dicts, chunkify, NUM_THREADS, \
+    STREAMING_PATH
 
 
 class DataService:
 
     def __init__(self):
-        self.game_service = GameService(GAME_PATH)
+        self.game_service = GameService()
         self.logger = logging.getLogger('DataService')
         self.processed = 0
 
-    def clean_data(self):
+    def clean_data(self) -> None:
         with open('./etl/services/temp/data_dirty.json', "r", encoding='utf-8') as data_file:
             data = json.load(data_file)
 
@@ -29,6 +29,10 @@ class DataService:
             for key, value in data['icon'].items():
                 if len(value) != 3 or not key.isdigit():
                     to_remove.append(key)
+                else:
+                    art_list = self.game_service.unity_servie.sort_sprite_list(value)
+                    if not art_list or len(art_list) != 3:
+                        to_remove.append(key)
 
             for key in to_remove:
                 del data['icon'][key]
@@ -39,7 +43,8 @@ class DataService:
             for key, value in data['deck_box'].items():
                 if len(value) != 7 or not key.isdigit():
                     to_remove.append(key)
-                if not {'large', 'o_large', 'r_large', 'o_medium', 'r_medium', 'medium', 'small'}.issubset(value.keys()) and key not in to_remove:
+                if (not {'large', 'o_large', 'r_large', 'o_medium', 'r_medium', 'medium', 'small'}.issubset(value.keys())
+                        and key not in to_remove):
                     to_remove.append(key)
 
             for key in to_remove:
@@ -113,58 +118,53 @@ class DataService:
             with open('./etl/services/temp/data.json', "w", encoding='utf-8') as clean_file:
                 json.dump(data, clean_file)
 
-    def get_ids(self):
+    def get_ids(self) -> None:
 
         ids = {'card_id': {}, 'sleeve': [], 'icon': {}, 'deck_box': {}, 'field': [], 'face': {}, 'wallpaper': {}}
 
         self.logger.info('Getting AssetBundles data...')
 
-        all_dirs = []
-        for _, dirs, _ in chain(os.walk(GAME_PATH), os.walk(join(
-                GAME_PATH,
-                "masterduel_Data",
-                "StreamingAssets",
-                "AssetBundle"
-            ))):
-            all_dirs.extend(dirs)
+        self.game_service.get_dir_data('c7', True)
 
-        def process_dirs(dir_list):
-            local_ids = {'card_id': {}, 'sleeve': [], 'icon': {}, 'deck_box': {}, 'field': [], 'wallpaper': {}}
-            for data_dir in dir_list:
-                if data_dir != 'root':
-                    dir_ids = self.game_service.get_dir_data(data_dir)
-                    local_ids['card_id'].update(dir_ids['card_id'])
-                    local_ids['sleeve'].extend(dir_ids['sleeve'])
-                    merge_nested_dict_lists(local_ids, dir_ids)
-                    merge_nested_dicts(local_ids['deck_box'], dir_ids['deck_box'])
-                    merge_nested_dicts(local_ids['wallpaper'], dir_ids['wallpaper'])
-                    local_ids['field'].extend(dir_ids['field'])
-
-                    self.processed += 1
-
-            return local_ids
+        all_dirs = [
+            [data_dir, is_streaming]
+            for is_streaming, path in [(False, GAME_PATH), (True, STREAMING_PATH)]
+            for _, dirs, _ in os.walk(path)
+            for data_dir in dirs
+        ]
 
         dir_chunks = chunkify(all_dirs, NUM_THREADS)
 
         with ThreadPoolExecutor(max_workers=NUM_THREADS) as executor:
-            results = list(executor.map(process_dirs, dir_chunks))
-
+            results = list(executor.map(self.process_dirs, dir_chunks))
 
         for result in results:
-            ids['card_id'].update(result['card_id'])
-            ids['sleeve'].extend(result['sleeve'])
-            merge_nested_dict_lists(ids, result)
-            merge_nested_dicts(ids['deck_box'], result['deck_box'])
-            merge_nested_dicts(ids['wallpaper'], result['wallpaper'])
-            ids['field'].extend(result['field'])
+            self.merge_data(ids, result)
 
-        self.logger.info('Getting Unity3D data...')
         unity3d_data = self.game_service.get_unity3d_data()
 
         ids['face'].update(unity3d_data['face'])
 
         with open("./etl/services/temp/ids.json", "w") as outfile:
             outfile.write(json.dumps(ids))
+
+    def process_dirs(self, dir_list) -> dict[str, dict | list]:
+        local_ids = {'card_id': {}, 'sleeve': [], 'icon': {}, 'deck_box': {}, 'field': [], 'wallpaper': {}}
+        for data_dir, is_streaming in dir_list:
+            if data_dir != 'root':
+                dir_ids = self.game_service.get_dir_data(data_dir, is_streaming)
+                self.merge_data(local_ids, dir_ids)
+                self.processed += 1
+
+        return local_ids
+
+    def merge_data(self, ids, result) -> None:
+        ids['card_id'].update(result['card_id'])
+        ids['sleeve'].extend(result['sleeve'])
+        merge_nested_dict_lists(ids, result)
+        merge_nested_dicts(ids['deck_box'], result['deck_box'])
+        merge_nested_dicts(ids['wallpaper'], result['wallpaper'])
+        ids['field'].extend(result['field'])
 
     def add_suffix(self, names) -> list:
         # Reverse the list to process from last to first
@@ -184,7 +184,7 @@ class DataService:
         # Reverse the list back to the original order
         return list(reversed(updated_names))
 
-    def remove_extra_suffix(self, cards: dict):
+    def remove_extra_suffix(self, cards: dict) -> dict:
         # Create a new dictionary to store the updated keys
         updated_dict = {}
 
@@ -208,23 +208,30 @@ class DataService:
 
         return updated_dict
 
-    def get_card_names(self):
+    def get_card_names(self) -> None:
         # Add alt art
         with open('./etl/services/temp/card_name.bytes.dec.json', 'r', encoding='utf-8') as names_json:
             names = self.add_suffix(json.load(names_json))
 
         with (open('./etl/services/temp/card_prop.bytes.Card_IDs.dec.json', 'r', encoding='utf-8') as props_json,
               open('./etl/services/temp/card_desc.bytes.dec.json', 'r', encoding='utf-8') as desc_json):
-            id_names = {key: [value_b, value_c] for key, value_b, value_c in zip(json.load(props_json), json.load(desc_json), names)}
-            to_remove = [key for key in id_names if key in range(30000, 30100)]
+            id_names = {
+                key: [value_b, value_c]
+                for key, value_b, value_c
+                in zip(json.load(props_json), json.load(desc_json), names)
+            }
 
+            # Cards in this range seem to be irrelevant duplicates of exising ones
+            to_remove = [key for key in id_names if key in range(30000, 30100)]
             for key in to_remove:
                 del id_names[key]
 
         with open('./etl/services/temp/ids.json', 'r', encoding='utf-8') as ids_json:
             ids = json.load(ids_json)
             updated_card_id = self.remove_extra_suffix({
-                id_names.get(int(key), key)[1]: [value, id_names.get(int(key), key)[0]] for key, value, in ids["card_id"].items()
+                id_names.get(int(key), key)[1]: [value, id_names.get(int(key), key)[0]]
+                for key, value,
+                in ids["card_id"].items()
             })
 
             ids["card_names"] = updated_card_id
@@ -232,7 +239,7 @@ class DataService:
             with open('./etl/services/temp/data_dirty.json', "w", encoding='utf-8') as data_file:
                 json.dump(ids, data_file)
 
-    def write_data(self):
+    def write_data(self) -> None:
         with open('./etl/services/temp/data.json', "r", encoding='utf-8') as data_file:
             data = json.load(data_file)
 

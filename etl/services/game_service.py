@@ -4,7 +4,7 @@ import re
 import UnityPy
 
 from services.unity_service import UnityService
-from util import HiddenPrints
+from util import STREAMING_PATH, GAME_PATH
 
 
 class GameService:
@@ -27,49 +27,47 @@ class GameService:
         'card_frame19': 'Ritual Pendulum'
     }
 
-    def __init__(self, data_path: str):
-        self.data_path = data_path
-        self.unity_servie = UnityService(data_path)
+    def __init__(self):
+        self.unity_servie = UnityService()
 
-    def get_dir_data(self, data_dir: str) -> dict:
+    def get_dir_data(self, data_dir: str, is_streaming: bool) -> dict:
 
-        with HiddenPrints():
-            ids = {'card_id': {}, 'sleeve': [], 'icon': {}, 'deck_box': {}, 'field': [], 'wallpaper': {}}
-            for _, _, files in os.walk(os.path.join(self.data_path, data_dir)):
-                for bundle in files:
-                    env = UnityPy.load(self.unity_servie.prepare_environment(False, bundle))
-                    for key in env.container.keys():
-                        if "card/images/illust/common/" in key or "card/images/illust/tcg/" in key:
-                            self._parse_card(ids, env, bundle)
-                        elif "images/profileicon/" in key:
-                            self._parse_icon(ids, env, bundle)
-                        elif "assets/resourcesassetbundle/protector/common/" in key or "assets/resourcesassetbundle/protector/tcg/" in key:
-                            self._parse_sleeve(ids, env, bundle)
-                        elif "assets/resourcesassetbundle/images/deckcase" in key:
-                            self._parse_deck_box(ids, env, bundle)
-                        elif re.search(re.compile(r"mat_0\d\d_near"), key.lower()):
-                            self._parse_field(ids, env, bundle)
-                        elif "card/data" in key and "en-us/card_" in key:
-                            self._parse_card_data_part(env, key.split("/")[-1])
-                        elif "assets/resourcesassetbundle/wallpaper/wallpaper" in key and (
-                            "wallpapericon" in key or re.search(re.compile(r"tcg/wallpaper\d\d\d\d_\d"), key.lower())
-                        ):
-                            self._parse_wallpaper(ids, env, bundle, re.search(r'\d{4}', key).group(0))
+        ids = {'card_id': {}, 'sleeve': [], 'icon': {}, 'deck_box': {}, 'field': [], 'wallpaper': {}}
+        for _, _, files in os.walk(os.path.join(STREAMING_PATH if is_streaming else GAME_PATH, data_dir)):
+            for bundle in files:
+                env = UnityPy.load(self.unity_servie.prepare_environment(is_streaming, bundle))
+                for key in env.container.keys():
+                    if data_dir.lower() == "c7":
+                        pass
+                    if "card/images/illust/common/" in key or "card/images/illust/tcg/" in key:
+                        self._parse_card(ids, env, bundle)
+                    elif "images/profileicon/" in key:
+                        self._parse_icon(ids, env, bundle)
+                    elif "assets/resourcesassetbundle/protector/common/" in key or "assets/resourcesassetbundle/protector/tcg/" in key:
+                        self._parse_sleeve(ids, env, bundle)
+                    elif "assets/resourcesassetbundle/images/deckcase" in key:
+                        self._parse_deck_box(ids, env, bundle)
+                    elif re.search(re.compile(r"mat_0\d\d_near"), key.lower()):
+                        self._parse_field(ids, env, bundle)
+                    elif "card/data" in key and "en-us/card_" in key:
+                        self._parse_card_data_part(env, key.split("/")[-1])
+                    elif "assets/resourcesassetbundle/wallpaper/wallpaper" in key and (
+                        "wallpapericon" in key or re.search(re.compile(r"tcg/wallpaper\d\d\d\d_\d"), key.lower())
+                    ):
+                        self._parse_wallpaper(ids, env, bundle, re.search(r'\d{4}', key).group(0))
 
         return ids
 
     def get_unity3d_data(self) -> dict:
-        ids = {'face': {}}
+        ids = {'card_id': {}, 'face': {}}
         env = UnityPy.load(self.unity_servie.prepare_unity3d_environment())
 
         for obj in env.objects:
             try:
-                obj_data = obj.read()
+                data = obj.read()
 
-                if hasattr(obj_data, 'm_Name') and hasattr(obj_data, 'm_CompleteImageSize'):
-
-                    if 'card_frame' in obj_data.m_Name and obj_data.m_CompleteImageSize == 720896:
-                        ids['face'][self.face_names[obj_data.m_Name]] = obj.path_id
+                if hasattr(data, 'm_Name') and hasattr(data, 'm_CompleteImageSize') and 'card_frame' in data.m_Name and data.m_CompleteImageSize == 720896:
+                    ids['face'][self.face_names[data.m_Name]] = obj.path_id
 
             # Ignore assets that UnityPy can't read
             except ValueError:
