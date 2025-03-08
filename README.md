@@ -65,7 +65,7 @@ pip install -r requirements.txt
 
 ### ETL from Game Data
 
-Replace the empty string in `etl/util.py` with your game path.
+Replace the empty string in `config.json` with your game path.
 
 Run the extraction script to pull data from Unity game files:
 
