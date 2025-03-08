@@ -81,13 +81,22 @@ of each field has not been automated yet.
 │   ├── decode/           # Decoding logic
 │   ├── services/         # Pipeline logic
 │   ├── main.py           # Main script
-│   └─── util.py           # Utility functions and configurable parameters
+│   └─── util.py          # Utility functions
+├── config.json           # Configurable parameters
 └── README.md             # This
 ```
 
 ## Configuration
 
-Modify the constants in `etl/util.py` to specify the game path, filtering rules, and other settings.
+Modify the values in `config.json`, the configurations are:
+
+- **game_path** path to your Master Duel installation's user data, up to the 0000 folder.
+- **num_threads** amount of threads to use when extracting data, performance varies by hardware.
+- **excluded_sleeves** sleeve assets to be ignored when building the list of sleeves. The game names sleeve materials
+the same way as animated sleeve frames, so they are removed manually.
+
+The only mandatory configuration is the **game_path**, the rest come with default values that should be appropriate for
+most cases.
 
 ## License
 

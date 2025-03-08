@@ -1,22 +1,17 @@
 import os, sys, shutil
 from os.path import join
+import json
 
-# Where the game is located up to the 0000 folder
-GAME_PATH = ""
 
-# Sleeve materials, they are named the same way as animated sleeve frames, so they need to be removed manually.
-EXCLUDED_SLEEVES = [
-    '1f72cd59',
-    'eb4a1fe5',
-    '715b5457',
-    '72434e5f',
-    'b1188a85',
-    "166f897f",
-    "8f66d8c5"
-]
+def load_config(config_path="config.json"):
+    with open(config_path, "r", encoding="utf-8") as file:
+        return json.load(file)
 
-# Amount of threads to use in concurrent operations, given that the ETL is mostly I/O bound it depends on your CPU cores
-NUM_THREADS = 8
+config = load_config()
+
+GAME_PATH = config["game_path"]
+EXCLUDED_SLEEVES = config["excluded_sleeves"]
+NUM_THREADS = config["num_threads"]
 
 STREAMING_PATH = join(
     GAME_PATH[:-23],
