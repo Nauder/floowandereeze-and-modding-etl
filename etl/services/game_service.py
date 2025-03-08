@@ -32,7 +32,7 @@ class GameService:
 
     def get_dir_data(self, data_dir: str, is_streaming: bool) -> dict:
 
-        ids = {'card_id': {}, 'sleeve': [], 'icon': {}, 'deck_box': {}, 'field': [], 'wallpaper': {}}
+        ids = {'card_id': {}, 'sleeve': [], 'icon': {}, 'deck_box': {}, 'field': [], 'wallpaper': {}, 'card_data': {}}
         for _, _, files in os.walk(os.path.join(STREAMING_PATH if is_streaming else GAME_PATH, data_dir)):
             for bundle in files:
                 env = UnityPy.load(self.unity_servie.prepare_environment(is_streaming, bundle))
@@ -50,7 +50,7 @@ class GameService:
                     elif re.search(re.compile(r"mat_0\d\d_near"), key.lower()):
                         self._parse_field(ids, env, bundle)
                     elif "card/data" in key and "en-us/card_" in key:
-                        self._parse_card_data_part(env, key.split("/")[-1])
+                        self._parse_card_data_part(env, key.split("/")[-1], ids, bundle)
                     elif "assets/resourcesassetbundle/wallpaper/wallpaper" in key and (
                         "wallpapericon" in key or re.search(re.compile(r"tcg/wallpaper\d\d\d\d_\d"), key.lower())
                     ):
@@ -141,9 +141,10 @@ class GameService:
                 elif "_2" in obj_data.m_Name:
                     ids["wallpaper"][wallpaper]['back'] = bundle
 
-    def _parse_card_data_part(self, env, part: str):
+    def _parse_card_data_part(self, env, part: str, ids, bundle):
         for obj in env.objects:
             data = obj.read()
             if obj.type.name == "TextAsset":
                 with open(f"./etl/services/temp/{part}", "wb") as f:
                     f.write(data.m_Script.encode("utf-8", "surrogateescape"))
+                ids['card_data'][part] = bundle

@@ -5,7 +5,7 @@ from concurrent.futures import ThreadPoolExecutor
 from os.path import isfile
 
 from dateutil.utils import today
-from pandas import DataFrame
+from pandas import DataFrame, Series
 
 from services.game_service import GameService
 from util import EXCLUDED_SLEEVES, GAME_PATH, merge_nested_dict_lists, merge_nested_dicts, chunkify, NUM_THREADS, \
@@ -115,12 +115,13 @@ class DataService:
                         fields = clean_file_data['field']
 
             data['field'] = fields
+
             with open('./etl/services/temp/data.json', "w", encoding='utf-8') as clean_file:
                 json.dump(data, clean_file)
 
     def get_ids(self) -> None:
 
-        ids = {'card_id': {}, 'sleeve': [], 'icon': {}, 'deck_box': {}, 'field': [], 'face': {}, 'wallpaper': {}}
+        ids = {'card_id': {}, 'sleeve': [], 'icon': {}, 'deck_box': {}, 'field': [], 'face': {}, 'wallpaper': {}, 'card_data': {}}
 
         self.logger.info('Getting AssetBundles data...')
 
@@ -149,7 +150,7 @@ class DataService:
             outfile.write(json.dumps(ids))
 
     def process_dirs(self, dir_list) -> dict[str, dict | list]:
-        local_ids = {'card_id': {}, 'sleeve': [], 'icon': {}, 'deck_box': {}, 'field': [], 'wallpaper': {}}
+        local_ids = {'card_id': {}, 'sleeve': [], 'icon': {}, 'deck_box': {}, 'field': [], 'wallpaper': {}, 'card_data': {}}
         for data_dir, is_streaming in dir_list:
             if data_dir != 'root':
                 dir_ids = self.game_service.get_dir_data(data_dir, is_streaming)
@@ -165,6 +166,7 @@ class DataService:
         merge_nested_dicts(ids['deck_box'], result['deck_box'])
         merge_nested_dicts(ids['wallpaper'], result['wallpaper'])
         ids['field'].extend(result['field'])
+        ids['card_data'].update(result['card_data'])
 
     def add_suffix(self, names) -> list:
         # Reverse the list to process from last to first
@@ -251,23 +253,23 @@ class DataService:
             self.logger.info('Writing Cards...')
             cards = DataFrame()
             cards.insert(0, 'name', data['card_names'].keys())
-            cards.insert(0, 'bundle', [value[0] for value in data['card_names'].values()])
-            cards.insert(0, 'description', [value[1] for value in data['card_names'].values()])
+            cards.insert(0, 'bundle', Series([value[0] for value in data['card_names'].values()]))
+            cards.insert(0, 'description', Series([value[1] for value in data['card_names'].values()]))
             cards.to_parquet('./data/cards.parquet')
 
             self.logger.info('Writing Fields...')
             fields = DataFrame()
             fields.insert(0, 'bundle', data['field'].keys())
-            fields.insert(0, 'flipped', [field['flipped'] for field in data['field'].values()])
-            fields.insert(0, 'bottom', [field['bottom'] for field in data['field'].values()])
+            fields.insert(0, 'flipped', Series([field['flipped'] for field in data['field'].values()]))
+            fields.insert(0, 'bottom', Series([field['bottom'] for field in data['field'].values()]))
             fields.to_parquet('./data/fields.parquet')
 
             self.logger.info('Writing Wallpapers...')
             wallpapers = DataFrame()
             wallpapers.insert(0, 'name', data['wallpaper'].keys())
-            wallpapers.insert(0, 'icon', [wallpaper['icon'] for wallpaper in data['wallpaper'].values()])
-            wallpapers.insert(0, 'back', [wallpaper['back'] for wallpaper in data['wallpaper'].values()])
-            wallpapers.insert(0, 'front', [wallpaper['front'] for wallpaper in data['wallpaper'].values()])
+            wallpapers.insert(0, 'icon', Series([wallpaper['icon'] for wallpaper in data['wallpaper'].values()]))
+            wallpapers.insert(0, 'back', Series([wallpaper['back'] for wallpaper in data['wallpaper'].values()]))
+            wallpapers.insert(0, 'front', Series([wallpaper['front'] for wallpaper in data['wallpaper'].values()]))
             wallpapers.to_parquet('./data/wallpapers.parquet')
 
             self.logger.info('Writing Card Faces...')
@@ -279,23 +281,29 @@ class DataService:
             self.logger.info('Writing Deck Boxes...')
             boxes = DataFrame()
             boxes.insert(0, 'name', data['deck_box'].keys())
-            boxes.insert(0, 'r_large', [deck_box['r_large'] for deck_box in data['deck_box'].values()])
-            boxes.insert(0, 'o_large', [deck_box['o_large'] for deck_box in data['deck_box'].values()])
-            boxes.insert(0, 'large', [deck_box['large'] for deck_box in data['deck_box'].values()])
-            boxes.insert(0, 'r_medium', [deck_box['r_medium'] for deck_box in data['deck_box'].values()])
-            boxes.insert(0, 'o_medium', [deck_box['o_medium'] for deck_box in data['deck_box'].values()])
-            boxes.insert(0, 'medium', [deck_box['medium'] for deck_box in data['deck_box'].values()])
-            boxes.insert(0, 'small', [deck_box['small'] for deck_box in data['deck_box'].values()])
+            boxes.insert(0, 'r_large', Series([deck_box['r_large'] for deck_box in data['deck_box'].values()]))
+            boxes.insert(0, 'o_large', Series([deck_box['o_large'] for deck_box in data['deck_box'].values()]))
+            boxes.insert(0, 'large', Series([deck_box['large'] for deck_box in data['deck_box'].values()]))
+            boxes.insert(0, 'r_medium', Series([deck_box['r_medium'] for deck_box in data['deck_box'].values()]))
+            boxes.insert(0, 'o_medium', Series([deck_box['o_medium'] for deck_box in data['deck_box'].values()]))
+            boxes.insert(0, 'medium', Series([deck_box['medium'] for deck_box in data['deck_box'].values()]))
+            boxes.insert(0, 'small', Series([deck_box['small'] for deck_box in data['deck_box'].values()]))
             boxes.to_parquet('./data/deck_boxes.parquet')
 
             self.logger.info('Writing Icons...')
             icons = DataFrame()
             sorted_icons = self.game_service.unity_servie.sort_icon_sizes(data['icon'].values())
-            icons.insert(0, 'small', [icon['small'] for icon in sorted_icons])
-            icons.insert(0, 'medium', [icon['medium'] for icon in sorted_icons])
-            icons.insert(0, 'large', [icon['large'] for icon in sorted_icons])
+            icons.insert(0, 'small', Series([icon['small'] for icon in sorted_icons]))
+            icons.insert(0, 'medium', Series([icon['medium'] for icon in sorted_icons]))
+            icons.insert(0, 'large', Series([icon['large'] for icon in sorted_icons]))
             icons.insert(0, 'name', data['icon'].keys())
             icons.to_parquet('./data/icons.parquet')
+
+            self.logger.info('Writing Card Metadata...')
+            metadata = DataFrame()
+            metadata.insert(0, 'name', data['card_data'].keys())
+            metadata.insert(0, 'bundle', data['card_data'].values())
+            metadata.to_parquet('./data/metadata.parquet')
 
             self.logger.info('Updating Version...')
             with open('./data/version.txt', 'w') as file:
