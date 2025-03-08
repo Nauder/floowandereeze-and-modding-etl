@@ -6,6 +6,9 @@ This project is an **Extract, Transform, Load (ETL) pipeline** designed to extra
 the Yu-Gi-Oh! Master Duel game via **reverse engineering**, transform it into a structured format, and store the results
 in **Parquet files**, mainly to be used by the Floowandereeze & Modding tool.
 
+This project **does not** extract the assets themselves (e.g. png files containing art of cards), it only gets the 
+references to the bundles containing the data, which can be used for modding.
+
 ## Features
 
 - **Extracts** game metadata by reverse engineering Unity game files. The data currently extracted includes:
@@ -73,6 +76,9 @@ python .\etl\main.py
 After extracting the data, the script will prompt about the layout of the game fields it found, as determining the type
 of each field has not been automated yet.
 
+Finally, the data will be available as Parquet files inside the `data/` folder, as well as a `version.txt` file
+containing the date of the last script run.
+
 ## Important Files Structure
 
 ```txt
@@ -85,6 +91,9 @@ of each field has not been automated yet.
 ├── config.json           # Configurable parameters
 └── README.md             # This
 ```
+
+The `data/` folder in the repository contains the game metadata as of it's last push, so if there was no game update 
+after the last push it should already be up to date.
 
 ## Configuration
 
