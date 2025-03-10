@@ -87,7 +87,7 @@ containing the date of the last script run.
 │   ├── decode/           # Decoding logic
 │   ├── services/         # Pipeline logic
 │   ├── main.py           # Main script
-│   └─── util.py          # Utility functions
+│   └── util.py           # Utility functions
 ├── config.json           # Configurable parameters
 └── README.md             # This
 ```

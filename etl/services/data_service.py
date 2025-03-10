@@ -210,7 +210,7 @@ class DataService:
 
         return updated_dict
 
-    def get_card_names(self) -> None:
+    def get_card_data(self) -> None:
         # Add alt art
         with open('./etl/services/temp/card_name.bytes.dec.json', 'r', encoding='utf-8') as names_json:
             names = self.add_suffix(json.load(names_json))
@@ -218,9 +218,9 @@ class DataService:
         with (open('./etl/services/temp/card_prop.bytes.Card_IDs.dec.json', 'r', encoding='utf-8') as props_json,
               open('./etl/services/temp/card_desc.bytes.dec.json', 'r', encoding='utf-8') as desc_json):
             id_names = {
-                key: [value_b, value_c]
-                for key, value_b, value_c
-                in zip(json.load(props_json), json.load(desc_json), names)
+                key: [value_b, value_c, value_d]
+                for key, value_b, value_c, value_d
+                in zip(json.load(props_json), json.load(desc_json), names, range(len(names)))
             }
 
             # Cards in this range seem to be irrelevant duplicates of exising ones
@@ -231,7 +231,7 @@ class DataService:
         with open('./etl/services/temp/ids.json', 'r', encoding='utf-8') as ids_json:
             ids = json.load(ids_json)
             updated_card_id = self.remove_extra_suffix({
-                id_names.get(int(key), key)[1]: [value, id_names.get(int(key), key)[0]]
+                id_names.get(int(key), key)[1]: [value, id_names.get(int(key), key)[0], id_names.get(int(key), key)[2]]
                 for key, value,
                 in ids["card_id"].items()
             })
@@ -255,6 +255,7 @@ class DataService:
             cards.insert(0, 'name', data['card_names'].keys())
             cards.insert(0, 'bundle', Series([value[0] for value in data['card_names'].values()]))
             cards.insert(0, 'description', Series([value[1] for value in data['card_names'].values()]))
+            cards.insert(0, 'data_index', Series([value[2] for value in data['card_names'].values()]))
             cards.to_parquet('./data/cards.parquet')
 
             self.logger.info('Writing Fields...')

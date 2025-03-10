@@ -32,7 +32,7 @@ if __name__ == '__main__':
     logger.info(done_message)
 
     logger.info('Getting card names...')
-    data_service.get_card_names()
+    data_service.get_card_data()
     logger.info(done_message)
 
     # TODO automatically sort fields
@@ -44,7 +44,7 @@ if __name__ == '__main__':
     data_service.write_data()
     logger.info(done_message)
 
-    logger.info('- Removing temporary files...')
+    logger.info('Removing temporary files...')
     clear_directory('./etl/services/temp')
     logger.info(done_message)
 

@@ -93,7 +93,7 @@ def Check_files(Filename_list):
 
 		if FileCheck(Filename) == 1:
 			Checked_filename_list.append(Filename)
-		elif FileCheck(Filename + '.bytes') == 1				:
+		elif FileCheck(Filename + '.bytes') == 1:
 			Checked_filename_list.append(Filename + '.bytes')
 		elif FileCheck(Filename + '.txt') == 1:
 			Checked_filename_list.append(Filename + '.txt')
