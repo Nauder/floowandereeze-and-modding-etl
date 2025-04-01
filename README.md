@@ -1,5 +1,13 @@
 # Floowandereeze & Modding ETL
 
+[![Pylint](https://github.com/Nauder/floowandereeze-and-modding-etl/actions/workflows/pylint.yml/badge.svg)](https://github.com/Nauder/floowandereeze-and-modding-etl/actions/workflows/pylint.yml)
+[![Black](https://github.com/Nauder/floowandereeze-and-modding-etl/actions/workflows/black.yml/badge.svg)](https://github.com/Nauder/floowandereeze-and-modding-etl/actions/workflows/black.yml)
+[![License: GPL v3](https://img.shields.io/badge/License-GPLv3-blue.svg)](https://www.gnu.org/licenses/gpl-3.0)
+
+![Python](https://img.shields.io/badge/python-3.8+-blue?logo=python&logoColor=white)
+![UnityPy](https://img.shields.io/badge/UnityPy-1.20-orange?logo=unity&logoColor=white)
+![pandas](https://img.shields.io/badge/pandas-latest-6554A8?logo=pandas&logoColor=white)
+
 ## Overview
 
 This project is an **Extract, Transform, Load (ETL) pipeline** designed to extract metadata from the global version of
@@ -116,6 +124,9 @@ This project uses GitHub Actions for continuous integration and code quality che
 The check requires a minimum score of 9/10.
 - **Black**: Runs on every push and pull request to the main branch to enforce consistent code formatting across the
 project.
+
+The `etl/decode` folders code is excluded from checks, as it is external code and not maintained
+in this repository.
 
 ## License
 
