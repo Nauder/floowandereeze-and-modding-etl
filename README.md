@@ -2,11 +2,11 @@
 
 ## Overview
 
-This project is an **Extract, Transform, Load (ETL) pipeline** designed to extract metadata from the global version of 
+This project is an **Extract, Transform, Load (ETL) pipeline** designed to extract metadata from the global version of
 the Yu-Gi-Oh! Master Duel game via **reverse engineering**, transform it into a structured format, and store the results
 in **Parquet files**, mainly to be used by the Floowandereeze & Modding tool.
 
-This project **does not** extract the assets themselves (e.g. png files containing art of cards), it only gets the 
+This project **does not** extract the assets themselves (e.g. png files containing art of cards), it only gets the
 references to the bundles containing the data, which can be used for modding.
 
 ## Features
@@ -30,6 +30,7 @@ references to the bundles containing the data, which can be used for modding.
 - [Usage](#usage)
 - [Important Files Structure](#important-files-structure)
 - [Configuration](#configuration)
+- [CI/CD](#cicd)
 - [License](#license)
 - [Credits](#credits)
 
@@ -92,7 +93,7 @@ containing the date of the last script run.
 └── README.md             # This
 ```
 
-The `data/` folder in the repository contains the game metadata as of it's last push, so if there was no game update 
+The `data/` folder in the repository contains the game metadata as of it's last push, so if there was no game update
 after the last push it should already be up to date.
 
 ## Configuration
@@ -106,6 +107,15 @@ the same way as animated sleeve frames, so they are removed manually.
 
 The only mandatory configuration is the **game_path**, the rest come with default values that should be appropriate for
 most cases.
+
+## CI/CD
+
+This project uses GitHub Actions for continuous integration and code quality checks:
+
+- **Pylint**: Runs on every push and pull request to the main branch to ensure code quality and catch potential errors.
+The check requires a minimum score of 9/10.
+- **Black**: Runs on every push and pull request to the main branch to enforce consistent code formatting across the
+project.
 
 ## License
 
