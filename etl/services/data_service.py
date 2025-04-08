@@ -33,8 +33,12 @@ class DataService:
         self.logger = logging.getLogger("DataService")
         self.processed = 0
 
-    def clean_data(self) -> None:
-        """Clean and validate the extracted data."""
+    def clean_data(self, sort_fields: bool = True) -> None:
+        """Clean and validate the extracted data.
+
+        Args:
+            sort_fields: Whether to sort fields (requires user input). Defaults to True.
+        """
         with open(
             "./etl/services/temp/data_dirty.json", "r", encoding="utf-8"
         ) as data_file:
@@ -110,8 +114,7 @@ class DataService:
                 "Was the field top:\n[1] On the top\n[2] On the bottom\n[3] Neither\n> "
             )
 
-            sort_fields = input("Sort fields? [Y]es [N]o: ")
-            if sort_fields.lower() == "y":
+            if sort_fields:
                 for field in sorted(data["field"]):
                     field_data = {}
                     field_image = self.game_service.unity_service.fetch_image(
@@ -145,7 +148,7 @@ class DataService:
 
                     print("\n")
             else:
-                self.logger.info("Attempting to use existing field data")
+                self.logger.info("Skipping field sorting")
                 if isfile("./etl/services/temp/data.json"):
                     with open(
                         "./etl/services/temp/data.json", "r", encoding="utf-8"
