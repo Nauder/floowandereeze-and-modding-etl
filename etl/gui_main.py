@@ -5,6 +5,7 @@ import tkinter as tk
 from tkinter import ttk, scrolledtext
 import threading
 import queue
+import os
 
 from services.data_service import DataService
 from services.decode_service import DecodeService
@@ -90,9 +91,26 @@ class ETLGUI:
             "TLabelframe.Label", background=self.bg_color, foreground=self.fg_color
         )
 
+        # Load and display splash art
+        splash_frame = ttk.Frame(self.main_frame)
+        splash_frame.grid(row=0, column=0, sticky=(tk.W, tk.E), pady=(0, 10))
+
+        splash_path = os.path.join(os.path.dirname(__file__), "res", "splash.txt")
+        with open(splash_path, "r", encoding="utf-8") as f:
+            splash_text = f.read()
+
+        splash_label = ttk.Label(
+            splash_frame,
+            text=splash_text,
+            font=("Courier", 10),
+            foreground=self.fg_color,
+            background=self.bg_color,
+        )
+        splash_label.grid(row=0, column=0, sticky=(tk.W, tk.E))
+
         # Create configuration info frame
         config_frame = ttk.Frame(self.main_frame)
-        config_frame.grid(row=0, column=0, sticky=(tk.W, tk.E), pady=(0, 10))
+        config_frame.grid(row=1, column=0, sticky=(tk.W, tk.E), pady=(0, 10))
 
         # Add configuration labels
         game_path_label = ttk.Label(
@@ -117,12 +135,12 @@ class ETLGUI:
         for i, (text, _) in enumerate(self.steps):
             var = tk.BooleanVar(value=True)
             cb = ttk.Checkbutton(self.main_frame, text=text, variable=var)
-            cb.grid(row=i + 1, column=0, sticky=tk.W, pady=5)
+            cb.grid(row=i + 2, column=0, sticky=tk.W, pady=5)
             self.checkboxes.append((var, cb))
 
         # Add separator
         separator = ttk.Separator(self.main_frame, orient="horizontal")
-        separator.grid(row=len(self.steps) + 1, column=0, sticky=(tk.W, tk.E), pady=10)
+        separator.grid(row=len(self.steps) + 2, column=0, sticky=(tk.W, tk.E), pady=10)
 
         # Add field sorting checkbox
         self.sort_fields_var = tk.BooleanVar(value=True)
@@ -131,18 +149,18 @@ class ETLGUI:
             text="Sort Fields (requires user input)",
             variable=self.sort_fields_var,
         )
-        self.sort_fields_cb.grid(row=len(self.steps) + 2, column=0, sticky=tk.W, pady=5)
+        self.sort_fields_cb.grid(row=len(self.steps) + 3, column=0, sticky=tk.W, pady=5)
 
         # Create run button
         self.run_button = ttk.Button(
             self.main_frame, text="Run Selected Steps", command=self.run_selected_steps
         )
-        self.run_button.grid(row=len(self.steps) + 3, column=0, pady=10)
+        self.run_button.grid(row=len(self.steps) + 4, column=0, pady=10)
 
         # Create output area
         self.output_frame = ttk.LabelFrame(self.main_frame, text="Output", padding="5")
         self.output_frame.grid(
-            row=len(self.steps) + 4, column=0, sticky=(tk.W, tk.E, tk.N, tk.S), pady=10
+            row=len(self.steps) + 5, column=0, sticky=(tk.W, tk.E, tk.N, tk.S), pady=10
         )
 
         self.output_text = scrolledtext.ScrolledText(
@@ -161,17 +179,18 @@ class ETLGUI:
         self.root.grid_columnconfigure(0, weight=1)
 
         # Configure main frame to expand
-        self.main_frame.grid_rowconfigure(0, weight=0)  # Config info
-        self.main_frame.grid_rowconfigure(1, weight=0)  # Steps
+        self.main_frame.grid_rowconfigure(0, weight=0)  # Splash
+        self.main_frame.grid_rowconfigure(1, weight=0)  # Config info
         self.main_frame.grid_rowconfigure(2, weight=0)  # Steps
         self.main_frame.grid_rowconfigure(3, weight=0)  # Steps
         self.main_frame.grid_rowconfigure(4, weight=0)  # Steps
         self.main_frame.grid_rowconfigure(5, weight=0)  # Steps
         self.main_frame.grid_rowconfigure(6, weight=0)  # Steps
-        self.main_frame.grid_rowconfigure(7, weight=0)  # Separator
-        self.main_frame.grid_rowconfigure(8, weight=0)  # Sort fields
-        self.main_frame.grid_rowconfigure(9, weight=0)  # Run button
-        self.main_frame.grid_rowconfigure(10, weight=1)  # Output frame (expand)
+        self.main_frame.grid_rowconfigure(7, weight=0)  # Steps
+        self.main_frame.grid_rowconfigure(8, weight=0)  # Separator
+        self.main_frame.grid_rowconfigure(9, weight=0)  # Sort fields
+        self.main_frame.grid_rowconfigure(10, weight=0)  # Run button
+        self.main_frame.grid_rowconfigure(11, weight=1)  # Output frame (expand)
         self.main_frame.grid_columnconfigure(0, weight=1)
 
         # Configure output frame to expand
@@ -295,7 +314,7 @@ class ETLGUI:
 
                 self.logger.info("ETL Finished")
             except Exception as e:
-                self.logger.error(f"Error during ETL process: {str(e)}")
+                self.logger.error("Error during ETL process: %s", str(e))
             finally:
                 self.root.after(0, lambda: self.run_button.config(state=tk.NORMAL))
 
@@ -306,7 +325,7 @@ class ETLGUI:
 def main():
     """Main entry point for the GUI application."""
     root = tk.Tk()
-    app = ETLGUI(root)
+    ETLGUI(root)
     root.mainloop()
 
 
