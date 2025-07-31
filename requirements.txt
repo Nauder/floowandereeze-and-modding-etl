@@ -1,5 +1,5 @@
 pandas~=2.2.2
-UnityPy~=1.20.18
+UnityPy~=1.23.0
 pillow~=11.0.0
 python-dateutil~=2.9.0.post0
 opencv-python~=4.11.0.86
