@@ -87,7 +87,9 @@ class GameService:
                         self._parse_wallpaper(
                             ids, env, bundle, re.search(r"\d{4}", key).group(0)
                         )
-                    elif re.search(re.compile(r"coin\d\dtex"), key.lower()):
+                    elif re.search(re.compile(r"coin\d\dtex"), key.lower()) or (
+                        "cointoss" in key.lower() and "icon" not in key.lower()
+                    ):
                         self._parse_coin(ids, env, bundle)
 
         return ids
