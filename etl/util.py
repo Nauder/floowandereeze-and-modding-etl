@@ -143,4 +143,5 @@ def get_data_wrapper() -> Dict[str, Any]:
         "wallpaper": {},
         "card_data": {},
         "face": {},
+        "coin": [],
     }

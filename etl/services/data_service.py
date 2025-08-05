@@ -169,7 +169,7 @@ class DataService:
 
         self.logger.info("Getting AssetBundles data...")
 
-        self.game_service.get_dir_data("c7", True)
+        # self.game_service.get_dir_data("c7", True)
 
         all_dirs = [
             [data_dir, is_streaming]
@@ -186,9 +186,13 @@ class DataService:
         for result in results:
             self.merge_data(ids, result)
 
+        self.logger.info("Getting unity3d data...")
+
         unity3d_data = self.game_service.get_unity3d_data()
 
         ids["face"].update(unity3d_data["face"])
+
+        self.logger.info("Saving ids...")
 
         with open("./etl/services/temp/ids.json", "w", encoding="utf-8") as outfile:
             json.dump(ids, outfile)
@@ -227,6 +231,7 @@ class DataService:
         merge_nested_dicts(ids["wallpaper"], result["wallpaper"])
         ids["field"].extend(result["field"])
         ids["card_data"].update(result["card_data"])
+        ids["coin"].extend(result["coin"])
 
     def add_suffix(self, names: List[str]) -> List[str]:
         """Add suffixes to duplicate names.
@@ -332,6 +337,9 @@ class DataService:
             )
 
             ids["card_names"] = updated_card_id
+            ids["legacy"] = {
+                name: value[0] for name, value in ids["card_names"].items()
+            }
 
             with open(
                 "./etl/services/temp/data_dirty.json", "w", encoding="utf-8"
@@ -469,6 +477,11 @@ class DataService:
             metadata.insert(0, "name", data["card_data"].keys())
             metadata.insert(0, "bundle", data["card_data"].values())
             metadata.to_parquet("./data/metadata.parquet")
+
+            self.logger.info("Writing Coins...")
+            coins = DataFrame()
+            coins.insert(0, "bundle", data["coin"])
+            coins.to_parquet("./data/coins.parquet")
 
             self.logger.info("Updating Version...")
             with open("./data/version.txt", "w", encoding="utf-8") as file:

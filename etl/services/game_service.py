@@ -2,6 +2,7 @@
 
 import os
 import re
+import logging
 from typing import Any, Dict
 
 import UnityPy
@@ -35,6 +36,7 @@ class GameService:
 
     def __init__(self) -> None:
         """Initialize the GameService with a UnityService instance."""
+        self.logger = logging.getLogger("GameService")
         self.unity_service = UnityService()
 
     def get_dir_data(self, data_dir: str, is_streaming: bool) -> Dict[str, Any]:
@@ -85,6 +87,8 @@ class GameService:
                         self._parse_wallpaper(
                             ids, env, bundle, re.search(r"\d{4}", key).group(0)
                         )
+                    elif re.search(re.compile(r"coin\d\dtex"), key.lower()):
+                        self._parse_coin(ids, env, bundle)
 
         return ids
 
@@ -96,6 +100,8 @@ class GameService:
         """
         ids = {"card_id": {}, "face": {}}
         env = UnityPy.load(self.unity_service.prepare_unity3d_environment())
+
+        self.logger.info("Got env...")
 
         for obj in env.objects:
             try:
@@ -109,6 +115,7 @@ class GameService:
                 ):
                     ids["face"][self.face_names[data.m_Name]] = obj.path_id
 
+            # Some objects can't be read, so skip them
             except ValueError:
                 pass
 
@@ -248,3 +255,16 @@ class GameService:
                 with open(f"./etl/services/temp/{part}", "wb") as f:
                     f.write(data.m_Script.encode("utf-8", "surrogateescape"))
                 ids["card_data"][part] = bundle
+
+    def _parse_coin(self, ids: Dict[str, Any], env: Any, bundle: str) -> None:
+        """Parse coin data from Unity environment.
+
+        Args:
+            ids: Dictionary to store parsed data.
+            env: Unity environment.
+            bundle: Bundle name.
+        """
+        for obj in env.objects:
+            obj_data = obj.read()
+            if obj.type.name == "Texture2D" and "coin" in obj_data.m_Name.lower():
+                ids["coin"].append(bundle)
