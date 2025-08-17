@@ -129,7 +129,7 @@ class GameService:
                             "x": rect.x,
                             "y": 1024 - rect.y - rect.height,
                             "width": rect.width,
-                            "height": rect.height
+                            "height": rect.height,
                         }
 
             # Some objects can't be read, so skip them

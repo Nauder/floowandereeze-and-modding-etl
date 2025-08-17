@@ -486,10 +486,22 @@ class DataService:
 
             self.logger.info("Writing Card Icons...")
             card_icons = DataFrame()
-            card_icons.insert(0, "height", Series([icon["height"] for icon in data["card_icon"].values()]))
-            card_icons.insert(0, "width", Series([icon["width"] for icon in data["card_icon"].values()]))
-            card_icons.insert(0, "y", Series([icon["y"] for icon in data["card_icon"].values()]))
-            card_icons.insert(0, "x", Series([icon["x"] for icon in data["card_icon"].values()]))
+            card_icons.insert(
+                0,
+                "height",
+                Series([icon["height"] for icon in data["card_icon"].values()]),
+            )
+            card_icons.insert(
+                0,
+                "width",
+                Series([icon["width"] for icon in data["card_icon"].values()]),
+            )
+            card_icons.insert(
+                0, "y", Series([icon["y"] for icon in data["card_icon"].values()])
+            )
+            card_icons.insert(
+                0, "x", Series([icon["x"] for icon in data["card_icon"].values()])
+            )
             card_icons.insert(0, "name", data["card_icon"].keys())
             card_icons.to_parquet("./data/card_icons.parquet")
 
