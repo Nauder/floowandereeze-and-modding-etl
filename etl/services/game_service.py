@@ -100,7 +100,7 @@ class GameService:
         Returns:
             Dictionary containing Unity3D data.
         """
-        ids = {"card_id": {}, "face": {}}
+        ids = {"card_id": {}, "face": {}, "card_icon": {}}
         env = UnityPy.load(self.unity_service.prepare_unity3d_environment())
 
         self.logger.info("Got env...")
@@ -116,6 +116,21 @@ class GameService:
                     and data.m_CompleteImageSize == 720896
                 ):
                     ids["face"][self.face_names[data.m_Name]] = obj.path_id
+                elif obj.type.name == "SpriteAtlas":
+                    atlas = obj.read()
+                    if atlas.m_Name != "CardSpriteAtlas":
+                        continue
+
+                    render_data_map = atlas.m_RenderDataMap
+                    names = atlas.m_PackedSpriteNamesToIndex
+                    for render_data, name in zip(render_data_map, names):
+                        rect = render_data[1].textureRect
+                        ids["card_icon"][name] = {
+                            "x": rect.x,
+                            "y": 1024 - rect.y - rect.height,
+                            "width": rect.width,
+                            "height": rect.height
+                        }
 
             # Some objects can't be read, so skip them
             except ValueError:

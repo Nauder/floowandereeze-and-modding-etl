@@ -191,6 +191,7 @@ class DataService:
         unity3d_data = self.game_service.get_unity3d_data()
 
         ids["face"].update(unity3d_data["face"])
+        ids["card_icon"].update(unity3d_data["card_icon"])
 
         self.logger.info("Saving ids...")
 
@@ -482,6 +483,15 @@ class DataService:
             coins = DataFrame()
             coins.insert(0, "bundle", data["coin"])
             coins.to_parquet("./data/coins.parquet")
+
+            self.logger.info("Writing Card Icons...")
+            card_icons = DataFrame()
+            card_icons.insert(0, "height", Series([icon["height"] for icon in data["card_icon"].values()]))
+            card_icons.insert(0, "width", Series([icon["width"] for icon in data["card_icon"].values()]))
+            card_icons.insert(0, "y", Series([icon["y"] for icon in data["card_icon"].values()]))
+            card_icons.insert(0, "x", Series([icon["x"] for icon in data["card_icon"].values()]))
+            card_icons.insert(0, "name", data["card_icon"].keys())
+            card_icons.to_parquet("./data/card_icons.parquet")
 
             self.logger.info("Updating Version...")
             with open("./data/version.txt", "w", encoding="utf-8") as file:
