@@ -190,7 +190,6 @@ class DataService:
 
         unity3d_data = self.game_service.get_unity3d_data()
 
-        ids["face"].update(unity3d_data["face"])
         ids["card_icon"].update(unity3d_data["card_icon"])
 
         self.logger.info("Saving ids...")
@@ -232,6 +231,7 @@ class DataService:
         merge_nested_dicts(ids["wallpaper"], result["wallpaper"])
         ids["field"].extend(result["field"])
         ids["card_data"].update(result["card_data"])
+        ids["face"].update(result["face"])
         ids["coin"].extend(result["coin"])
 
     def add_suffix(self, names: List[str]) -> List[str]:
@@ -414,7 +414,8 @@ class DataService:
 
             self.logger.info("Writing Card Faces...")
             faces = DataFrame()
-            faces.insert(0, "key", data["face"].values())
+            faces.insert(0, "bundle", Series([f["bundle"] for f in data["face"].values()]))
+            faces.insert(0, "key", Series([f["key"] for f in data["face"].values()]))
             faces.insert(0, "name", data["face"].keys())
             faces.to_parquet("./data/faces.parquet")
 

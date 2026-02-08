@@ -87,6 +87,8 @@ class GameService:
                         self._parse_wallpaper(
                             ids, env, bundle, re.search(r"\d{4}", key).group(0)
                         )
+                    elif "assets/resourcesassetbundle/card/scriptableobjects/cardpicturesetting" in key.lower():
+                        self._parse_face(ids, env, bundle)
                     elif re.search(re.compile(r"coin\d\dtex"), key.lower()) or (
                         "cointoss" in key.lower() and "icon" not in key.lower()
                     ):
@@ -100,7 +102,7 @@ class GameService:
         Returns:
             Dictionary containing Unity3D data.
         """
-        ids = {"card_id": {}, "face": {}, "card_icon": {}}
+        ids = {"card_id": {}, "card_icon": {}}
         env = UnityPy.load(self.unity_service.prepare_unity3d_environment())
 
         self.logger.info("Got env...")
@@ -109,14 +111,7 @@ class GameService:
             try:
                 data = obj.read()
 
-                if (
-                    hasattr(data, "m_Name")
-                    and hasattr(data, "m_CompleteImageSize")
-                    and "card_frame" in data.m_Name
-                    and data.m_CompleteImageSize == 720896
-                ):
-                    ids["face"][self.face_names[data.m_Name]] = obj.path_id
-                elif obj.type.name == "SpriteAtlas":
+                if obj.type.name == "SpriteAtlas":
                     atlas = obj.read()
                     if atlas.m_Name != "CardSpriteAtlas":
                         continue
@@ -285,3 +280,32 @@ class GameService:
             obj_data = obj.read()
             if obj.type.name == "Texture2D" and "coin" in obj_data.m_Name.lower():
                 ids["coin"].append(bundle)
+
+    def _parse_face(self, ids: Dict[str, Any], env: Any, bundle: str) -> None:
+        """Parse face data from Unity environment.
+
+        All faces are in the same bundle. Looks for the first face (card_frame00)
+        to confirm this is the correct bundle, then collects all faces from it.
+
+        Args:
+            ids: Dictionary to store parsed data.
+            env: Unity environment.
+            bundle: Bundle name.
+        """
+        found_first = False
+        for obj in env.objects:
+            if obj.type.name == "Texture2D" and obj.read().m_Name == "card_frame00":
+                found_first = True
+                break
+
+        if not found_first:
+            return
+
+        for obj in env.objects:
+            if obj.type.name == "Texture2D":
+                obj_data = obj.read()
+                if obj_data.m_Name in self.face_names and obj_data.m_Width != 480:
+                    ids["face"][self.face_names[obj_data.m_Name]] = {
+                        "key": obj.path_id,
+                        "bundle": bundle,
+                    }
