@@ -36,6 +36,7 @@ references to the bundles containing the data, which can be used for modding.
 - [Technologies Used](#technologies-used)
 - [Installation](#installation)
 - [Usage](#usage)
+- [Testing](#testing)
 - [Important Files Structure](#important-files-structure)
 - [Configuration](#configuration)
 - [CI/CD](#cicd)
@@ -88,6 +89,42 @@ of each field has not been automated yet.
 Finally, the data will be available as Parquet files inside the `data/` folder, as well as a `version.txt` file
 containing the date of the last script run.
 
+## Testing
+
+The project uses [pytest](https://docs.pytest.org/) for unit and integrity tests.
+
+### Setup
+
+Install the development dependencies (separate from the main pipeline requirements):
+
+```sh
+pip install -r requirements-dev.txt
+```
+
+### Running Tests
+
+```sh
+# Run all tests with verbose output
+python -m pytest tests/ -v
+
+# Or simply (pytest.ini configures testpaths = tests)
+pytest
+```
+
+### Test Suites
+
+| File | Coverage |
+|---|---|
+| `tests/test_util.py` | Utility functions (`chunkify`, `merge_nested_dicts`, etc.) |
+| `tests/test_data_service.py` | `DataService` methods (data cleaning, merging, validation) |
+| `tests/test_parquet_integrity.py` | Schema and data integrity of the committed Parquet files in `data/` |
+
+### Notes
+
+- `conftest.py` adds `etl/` to `sys.path`, mirroring how `python etl/main.py` is run.
+- The integrity tests (`test_parquet_integrity.py`) validate the `data/` Parquet files that are committed to the repository and require no game installation.
+- Unit tests mock `GameService` and other I/O-heavy components, so no game path is needed.
+
 ## Important Files Structure
 
 ```txt
@@ -97,7 +134,9 @@ containing the date of the last script run.
 │   ├── services/         # Pipeline logic
 │   ├── main.py           # Main script
 │   └── util.py           # Utility functions
+├── tests/                # pytest test suites
 ├── config.json           # Configurable parameters
+├── requirements-dev.txt  # Development dependencies (pytest)
 └── README.md             # This
 ```
 
