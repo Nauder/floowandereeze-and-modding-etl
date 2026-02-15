@@ -51,7 +51,7 @@ if __name__ == "__main__":
     data_service.get_card_data()
     logger.info(DONE_MESSAGE)
 
-    # TODO automatically sort fields
+    # NOTE: field sorting is not yet automated
     logger.info("Cleaning data...")
     data_service.clean_data()
     logger.info(DONE_MESSAGE)

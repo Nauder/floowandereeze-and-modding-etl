@@ -1,9 +1,10 @@
 """Tests for DataService methods."""
 
-import json
+# pylint: disable=missing-class-docstring,missing-function-docstring,redefined-outer-name,duplicate-code
+
+from unittest.mock import patch
 
 import pytest
-from unittest.mock import MagicMock, patch
 
 from services.data_service import DataService
 
@@ -139,7 +140,9 @@ class TestMergeData:
 
     def test_icon_deduplication_via_nested_dict_lists(self, data_service):
         ids = self._wrapper(icon={"100": ["bundle_a"]})
-        data_service.merge_data(ids, self._wrapper(icon={"100": ["bundle_a", "bundle_b"]}))
+        data_service.merge_data(
+            ids, self._wrapper(icon={"100": ["bundle_a", "bundle_b"]})
+        )
         assert ids["icon"]["100"].count("bundle_a") == 1
         assert "bundle_b" in ids["icon"]["100"]
 
@@ -170,9 +173,7 @@ class TestCleanData:
         return mock_dump.call_args[0][0]
 
     def test_removes_icon_with_fewer_than_3_bundles(self, data_service):
-        dirty = self._make_dirty_data(
-            icon={"123": ["a", "b"], "456": ["a", "b", "c"]}
-        )
+        dirty = self._make_dirty_data(icon={"123": ["a", "b"], "456": ["a", "b", "c"]})
         result = self._run_clean(data_service, dirty)
         assert "123" not in result["icon"]
         assert "456" in result["icon"]
@@ -196,7 +197,15 @@ class TestCleanData:
         assert "100" not in result["icon"]
 
     def test_removes_deck_box_with_missing_size_keys(self, data_service):
-        valid_keys = {"large", "o_large", "r_large", "o_medium", "r_medium", "medium", "small"}
+        valid_keys = {
+            "large",
+            "o_large",
+            "r_large",
+            "o_medium",
+            "r_medium",
+            "medium",
+            "small",
+        }
         dirty = self._make_dirty_data(
             deck_box={
                 "1": {k: f"b_{k}" for k in valid_keys},
@@ -208,10 +217,16 @@ class TestCleanData:
         assert "2" not in result["deck_box"]
 
     def test_removes_deck_box_with_non_numeric_id(self, data_service):
-        valid_keys = {"large", "o_large", "r_large", "o_medium", "r_medium", "medium", "small"}
-        dirty = self._make_dirty_data(
-            deck_box={"xyz": {k: "b" for k in valid_keys}}
-        )
+        valid_keys = {
+            "large",
+            "o_large",
+            "r_large",
+            "o_medium",
+            "r_medium",
+            "medium",
+            "small",
+        }
+        dirty = self._make_dirty_data(deck_box={"xyz": {k: "b" for k in valid_keys}})
         result = self._run_clean(data_service, dirty)
         assert "xyz" not in result["deck_box"]
 

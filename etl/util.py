@@ -83,7 +83,7 @@ def chunkify(lst: List[Any], n: int) -> List[List[Any]]:
     return [lst[i * k + min(i, m) : (i + 1) * k + min(i + 1, m)] for i in range(n)]
 
 
-class BColors:
+class BColors:  # pylint: disable=too-few-public-methods
     """ANSI color codes for terminal output."""
 
     HEADER = "\033[95m"

@@ -19,15 +19,15 @@ class RedirectText:
     processed by the GUI to update the output text area in a thread-safe manner.
     """
 
-    def __init__(self, text_widget, queue):
+    def __init__(self, text_widget, text_queue):
         """Initialize the RedirectText instance.
 
         Args:
             text_widget: The text widget to update.
-            queue: The queue to put text updates into.
+            text_queue: The queue to put text updates into.
         """
         self.text_widget = text_widget
-        self.queue = queue
+        self.queue = text_queue
 
     def write(self, string):
         """Write text to the queue.
@@ -39,17 +39,16 @@ class RedirectText:
 
     def flush(self):
         """Required for compatibility with logging.StreamHandler."""
-        pass
 
 
-class ETLGUI:
+class ETLGUI:  # pylint: disable=too-many-instance-attributes
     """Main GUI class for the ETL process.
 
     This class provides a graphical user interface for running the ETL process,
     allowing users to select which steps to run and view the output in real-time.
     """
 
-    def __init__(self, root):
+    def __init__(self, root):  # pylint: disable=too-many-statements
         """Initialize the ETL GUI.
 
         Args:
@@ -313,7 +312,7 @@ class ETLGUI:
                         func()
 
                 self.logger.info("ETL Finished")
-            except Exception as e:
+            except Exception as e:  # pylint: disable=broad-exception-caught
                 self.logger.error("Error during ETL process: %s", str(e))
             finally:
                 self.root.after(0, lambda: self.run_button.config(state=tk.NORMAL))

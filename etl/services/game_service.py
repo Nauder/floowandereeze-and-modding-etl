@@ -87,7 +87,10 @@ class GameService:
                         self._parse_wallpaper(
                             ids, env, bundle, re.search(r"\d{4}", key).group(0)
                         )
-                    elif "assets/resourcesassetbundle/card/scriptableobjects/cardpicturesetting" in key.lower():
+                    elif (
+                        "assets/resourcesassetbundle/card/scriptableobjects/cardpicturesetting"
+                        in key.lower()
+                    ):
                         self._parse_face(ids, env, bundle)
                     elif re.search(re.compile(r"coin\d\dtex"), key.lower()) or (
                         "cointoss" in key.lower() and "icon" not in key.lower()

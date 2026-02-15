@@ -1,5 +1,7 @@
 """Data integrity tests for Parquet output files in data/."""
 
+# pylint: disable=missing-class-docstring,missing-function-docstring,redefined-outer-name
+
 import re
 from pathlib import Path
 
@@ -105,14 +107,24 @@ class TestIcons:
 
     def test_bundle_format(self, icons):
         for col in self.BUNDLE_COLS:
-            assert icons[col].apply(_is_bundle).all(), f"Invalid bundle in column '{col}'"
+            assert (
+                icons[col].apply(_is_bundle).all()
+            ), f"Invalid bundle in column '{col}'"
 
     def test_unique_names(self, icons):
         assert not icons["name"].duplicated().any()
 
 
 class TestDeckBoxes:
-    SIZE_COLS = ["small", "medium", "o_medium", "r_medium", "large", "o_large", "r_large"]
+    SIZE_COLS = [
+        "small",
+        "medium",
+        "o_medium",
+        "r_medium",
+        "large",
+        "o_large",
+        "r_large",
+    ]
 
     def test_not_empty(self, deck_boxes):
         assert len(deck_boxes) > 0
@@ -125,7 +137,9 @@ class TestDeckBoxes:
 
     def test_all_size_bundles_valid(self, deck_boxes):
         for col in self.SIZE_COLS:
-            assert deck_boxes[col].apply(_is_bundle).all(), f"Invalid bundle in column '{col}'"
+            assert (
+                deck_boxes[col].apply(_is_bundle).all()
+            ), f"Invalid bundle in column '{col}'"
 
     def test_name_is_numeric(self, deck_boxes):
         assert deck_boxes["name"].apply(lambda x: str(x).isdigit()).all()
@@ -165,7 +179,9 @@ class TestWallpapers:
 
     def test_bundle_format(self, wallpapers):
         for col in self.BUNDLE_COLS:
-            assert wallpapers[col].apply(_is_bundle).all(), f"Invalid bundle in column '{col}'"
+            assert (
+                wallpapers[col].apply(_is_bundle).all()
+            ), f"Invalid bundle in column '{col}'"
 
     def test_unique_names(self, wallpapers):
         assert not wallpapers["name"].duplicated().any()
@@ -256,6 +272,6 @@ class TestMetadata:
         assert self.REQUIRED_FILES <= set(metadata["name"])
 
 
-class TestFields:
+class TestFields:  # pylint: disable=too-few-public-methods
     def test_columns(self, fields):
         assert set(fields.columns) == {"bottom", "flipped", "bundle"}

@@ -1,6 +1,6 @@
 """Tests for utility functions in etl/util.py."""
 
-import pytest
+# pylint: disable=missing-class-docstring,missing-function-docstring,use-implicit-booleaness-not-comparison,duplicate-code
 
 from util import chunkify, get_data_wrapper, merge_nested_dict_lists, merge_nested_dicts
 
@@ -111,7 +111,15 @@ class TestGetDataWrapper:
 
     def test_dict_values_are_empty(self):
         wrapper = get_data_wrapper()
-        for key in ("card_id", "icon", "deck_box", "wallpaper", "card_data", "face", "card_icon"):
+        for key in (
+            "card_id",
+            "icon",
+            "deck_box",
+            "wallpaper",
+            "card_data",
+            "face",
+            "card_icon",
+        ):
             assert wrapper[key] == {}, f"Expected empty dict for '{key}'"
 
     def test_list_values_are_empty(self):
