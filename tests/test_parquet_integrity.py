@@ -192,13 +192,10 @@ class TestFaces:
         assert len(faces) > 0
 
     def test_columns(self, faces):
-        assert set(faces.columns) == {"name", "key", "bundle"}
+        assert set(faces.columns) == {"name", "key"}
 
     def test_no_nulls(self, faces):
         assert not faces.isna().any().any()
-
-    def test_bundle_format(self, faces):
-        assert faces["bundle"].apply(_is_bundle).all()
 
     def test_unique_names(self, faces):
         assert not faces["name"].duplicated().any()
@@ -216,6 +213,7 @@ class TestCoins:
 
     def test_bundle_format(self, coins):
         assert coins["bundle"].apply(_is_bundle).all()
+
     #
     # def test_no_duplicates(self, coins):
     #     assert not coins["bundle"].duplicated().any()

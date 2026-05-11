@@ -131,10 +131,8 @@ class TestMergeData:
         assert ids["card_data"] == {"part_a": "bundle_1", "part_b": "bundle_2"}
 
     def test_merges_face_data(self, data_service):
-        ids = self._wrapper(face={"Normal": {"key": 0, "bundle": "b1"}})
-        data_service.merge_data(
-            ids, self._wrapper(face={"Effect": {"key": 1, "bundle": "b2"}})
-        )
+        ids = self._wrapper(face={"Normal": {"key": 0}})
+        data_service.merge_data(ids, self._wrapper(face={"Effect": {"key": 1}}))
         assert "Normal" in ids["face"]
         assert "Effect" in ids["face"]
 

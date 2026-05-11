@@ -30,6 +30,8 @@ STREAMING_PATH = join(
     GAME_PATH[:-23], "masterduel_Data", "StreamingAssets", "AssetBundle"
 )
 
+CARD_FACE_SIZE = 720896
+
 
 def merge_nested_dict_lists(dict1: Dict[str, Any], dict2: Dict[str, Any]) -> None:
     """Merge nested dictionary lists, handling duplicate values.
