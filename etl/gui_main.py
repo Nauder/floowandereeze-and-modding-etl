@@ -2,6 +2,7 @@
 
 import logging
 import tkinter as tk
+import traceback
 from tkinter import ttk, scrolledtext
 import threading
 import queue
@@ -312,8 +313,10 @@ class ETLGUI:  # pylint: disable=too-many-instance-attributes
                         func()
 
                 self.logger.info("ETL Finished")
-            except Exception as e:  # pylint: disable=broad-exception-caught
-                self.logger.error("Error during ETL process: %s", str(e))
+            except Exception:  # pylint: disable=broad-exception-caught
+                self.logger.error(
+                    "Error during ETL process: %s", traceback.format_exc()
+                )
             finally:
                 self.root.after(0, lambda: self.run_button.config(state=tk.NORMAL))
 
