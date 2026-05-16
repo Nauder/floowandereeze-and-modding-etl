@@ -5,3 +5,4 @@ python-dateutil~=2.9.0.post0
 opencv-python~=4.11.0.86
 numpy~=2.1.1
 matplotlib~=3.10.0
+fastparquet~=2026.5.0
