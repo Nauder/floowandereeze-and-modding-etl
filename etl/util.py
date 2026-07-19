@@ -148,6 +148,7 @@ def get_data_wrapper() -> IdsData:
 
 class SortSizes(NamedTuple):
     """Tuple containing image sizes for sorting."""
+
     small: int
     medium: int
     large: int

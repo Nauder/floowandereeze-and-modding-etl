@@ -83,7 +83,9 @@ class UnityService:
 
         return self.fetch_image(bundle, True)
 
-    def sort_sprite_list(self, sprite_list: List[str], sizes: SortSizes) -> Dict[str, str]:
+    def sort_sprite_list(
+        self, sprite_list: List[str], sizes: SortSizes
+    ) -> Dict[str, str]:
         """Sort a list of sprites by image size.
 
         Args:
@@ -114,7 +116,9 @@ class UnityService:
         print(f"Failed to sort sprites: {sprite_list} => {sorted_sprites}")
         return {}
 
-    def sort_icon_sizes(self, icons: List[List[str]], sizes: SortSizes) -> List[Dict[str, str]]:
+    def sort_icon_sizes(
+        self, icons: List[List[str]], sizes: SortSizes
+    ) -> List[Dict[str, str]]:
         """Sort multiple lists of icons by size.
 
         Args:

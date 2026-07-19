@@ -283,5 +283,10 @@ class GameService:
         """
         for obj in env.objects:
             obj_data = obj.read()
-            if obj.type.name == "Texture2D" and "cointossicon" in obj_data.m_Name.lower():
-                ids.coin.setdefault(obj_data.m_Name[12:].lower().replace("_", ""), []).append(bundle)
+            if (
+                obj.type.name == "Texture2D"
+                and "cointossicon" in obj_data.m_Name.lower()
+            ):
+                ids.coin.setdefault(
+                    obj_data.m_Name[12:].lower().replace("_", ""), []
+                ).append(bundle)

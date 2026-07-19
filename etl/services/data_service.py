@@ -20,7 +20,9 @@ from util import (
     merge_nested_dicts,
     chunkify,
     NUM_THREADS,
-    STREAMING_PATH, COIN_SIZES, ICON_SIZES,
+    STREAMING_PATH,
+    COIN_SIZES,
+    ICON_SIZES,
 )
 
 from .game_service import GameService
@@ -54,7 +56,9 @@ class DataService:
                     if len(value) != 3 or not key.isdigit():
                         to_remove.append(key)
                     else:
-                        art_list = self.game_service.unity_service.sort_sprite_list(value, size)
+                        art_list = self.game_service.unity_service.sort_sprite_list(
+                            value, size
+                        )
                         if not art_list or len(art_list) != 3:
                             to_remove.append(key)
 
