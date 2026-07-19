@@ -2,8 +2,10 @@
 
 # pylint: disable=missing-class-docstring,missing-function-docstring,redefined-outer-name,duplicate-code
 
+import json
 from unittest.mock import patch
 
+from pandas import read_parquet
 import pytest
 
 from services.data_service import DataService
@@ -108,10 +110,12 @@ class TestMergeData:
         data_service.merge_data(ids, self._wrapper(field=["f2"]))
         assert ids.field == ["f1", "f2"]
 
-    def test_extends_coin_list(self, data_service):
-        ids = self._wrapper(coin=["c1"])
-        data_service.merge_data(ids, self._wrapper(coin=["c2"]))
-        assert ids.coin == ["c1", "c2"]
+    def test_merges_coin_lists(self, data_service):
+        ids = self._wrapper(coin={"1": ["bundle_a"]})
+        data_service.merge_data(
+            ids, self._wrapper(coin={"1": ["bundle_a", "bundle_b"]})
+        )
+        assert ids.coin["1"] == ["bundle_a", "bundle_b"]
 
     def test_merges_card_data(self, data_service):
         ids = self._wrapper(card_data={"part_a": "bundle_1"})
@@ -139,6 +143,7 @@ class TestCleanData:
     def _make_dirty_data(self, **overrides):
         base = {
             "icon": {},
+            "coin": {},
             "deck_box": {},
             "sleeve": [],
             "wallpaper": {},
@@ -181,6 +186,17 @@ class TestCleanData:
         dirty = self._make_dirty_data(icon={"100": ["a", "b", "c"]})
         result = self._run_clean(data_service, dirty)
         assert "100" not in result["icon"]
+
+    def test_removes_coin_that_does_not_match_icon_structure(self, data_service):
+        dirty = self._make_dirty_data(
+            coin={
+                "123": ["a", "b", "c"],
+                "abc": ["a", "b", "c"],
+                "456": ["a", "b"],
+            }
+        )
+        result = self._run_clean(data_service, dirty)
+        assert set(result["coin"]) == {"123"}
 
     def test_removes_deck_box_with_missing_size_keys(self, data_service):
         valid_keys = {
@@ -248,3 +264,68 @@ class TestCleanData:
 
         result = mock_dump.call_args[0][0]
         assert result["field"] == {"bundle_x": {"bottom": True, "flipped": False}}
+
+
+class TestWriteData:  # pylint: disable=too-few-public-methods
+    def test_writes_coins_like_icons(self, data_service, tmp_path, monkeypatch):
+        monkeypatch.chdir(tmp_path)
+        data_path = tmp_path / "etl" / "services" / "temp"
+        data_path.mkdir(parents=True)
+        (tmp_path / "data").mkdir()
+
+        def sort_asset_sizes(asset_lists):
+            return [
+                {
+                    "large": asset_list[0],
+                    "medium": asset_list[1],
+                    "small": asset_list[2],
+                }
+                for asset_list in asset_lists
+            ]
+
+        data_service.game_service.unity_service.sort_icon_sizes.side_effect = (
+            sort_asset_sizes
+        )
+        deck_box = {
+            key: f"deck_box_{key}"
+            for key in (
+                "small",
+                "medium",
+                "o_medium",
+                "r_medium",
+                "large",
+                "o_large",
+                "r_large",
+            )
+        }
+        data = {
+            "sleeve": ["sleeve_bundle"],
+            "card_names": {"Card": ["card_bundle", "description", 0]},
+            "field": {"field_bundle": {"bottom": False, "flipped": False}},
+            "wallpaper": {
+                "1": {
+                    "icon": "wallpaper_icon",
+                    "front": "wallpaper_front",
+                    "back": "wallpaper_back",
+                }
+            },
+            "face": {"Normal": 1},
+            "deck_box": {"1": deck_box},
+            "icon": {"100": ["icon_large", "icon_medium", "icon_small"]},
+            "card_data": {"card_name.bytes": "metadata_bundle"},
+            "coin": {"200": ["coin_large", "coin_medium", "coin_small"]},
+            "card_icon": {"card_icon": {"x": 0, "y": 0, "width": 1, "height": 1}},
+        }
+        with open(data_path / "data.json", "w", encoding="utf-8") as data_file:
+            json.dump(data, data_file)
+
+        data_service.write_data()
+
+        coins = read_parquet(tmp_path / "data" / "coins.parquet")
+        assert list(coins.columns) == ["name", "large", "medium", "small"]
+        assert coins.iloc[0].to_dict() == {
+            "name": "200",
+            "large": "coin_large",
+            "medium": "coin_medium",
+            "small": "coin_small",
+        }

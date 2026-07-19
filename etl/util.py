@@ -5,7 +5,7 @@ import os
 import shutil
 from dataclasses import dataclass, field as dataclass_field
 from os.path import join
-from typing import Any, Dict, List
+from typing import Any, Dict, List, NamedTuple
 
 
 def load_config(config_path: str = "config.json") -> Dict[str, Any]:
@@ -46,23 +46,26 @@ class IdsData:
     wallpaper: Dict[str, Dict[str, str]] = dataclass_field(default_factory=dict)
     card_data: Dict[str, str] = dataclass_field(default_factory=dict)
     face: Dict[str, int] = dataclass_field(default_factory=dict)
-    coin: List[str] = dataclass_field(default_factory=list)
+    coin: Dict[str, List[str]] = dataclass_field(default_factory=dict)
     card_icon: Dict[str, Dict[str, float]] = dataclass_field(default_factory=dict)
 
 
 def merge_nested_dict_lists(ids: IdsData, result: IdsData) -> None:
-    """Merge icon references into an ID collection, removing duplicates.
+    """Merge icon and coin references into an ID collection, removing duplicates.
 
     Args:
         ids: ID collection to merge into.
         result: ID collection to merge from.
     """
-    for key, value in result.icon.items():
-        if key in ids.icon:
-            ids.icon[key].extend(value)
-            ids.icon[key] = list(dict.fromkeys(ids.icon[key]))
-        else:
-            ids.icon[key] = value
+    for asset_type in ("icon", "coin"):
+        destination = getattr(ids, asset_type)
+        source = getattr(result, asset_type)
+        for key, value in source.items():
+            if key in destination:
+                destination[key].extend(value)
+                destination[key] = list(dict.fromkeys(destination[key]))
+            else:
+                destination[key] = value
 
 
 def merge_nested_dicts(dict1: Dict[str, Any], dict2: Dict[str, Any]) -> Dict[str, Any]:
@@ -141,3 +144,14 @@ def clear_directory(directory_path: str) -> None:
 def get_data_wrapper() -> IdsData:
     """Create an empty ID collection for the ETL extraction process."""
     return IdsData()
+
+
+class SortSizes(NamedTuple):
+    """Tuple containing image sizes for sorting."""
+    small: int
+    medium: int
+    large: int
+
+
+ICON_SIZES = SortSizes(128, 256, 512)
+COIN_SIZES = SortSizes(64, 128, 512)

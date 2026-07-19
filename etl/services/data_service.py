@@ -20,7 +20,7 @@ from util import (
     merge_nested_dicts,
     chunkify,
     NUM_THREADS,
-    STREAMING_PATH,
+    STREAMING_PATH, COIN_SIZES, ICON_SIZES,
 )
 
 from .game_service import GameService
@@ -46,19 +46,20 @@ class DataService:
         ) as data_file:
             data = json.load(data_file)
 
-            self.logger.info("Removing bad icons")
-            to_remove = []
+            self.logger.info("Removing bad icons and coins")
+            for asset_type, size in zip(["icon", "coin"], [ICON_SIZES, COIN_SIZES]):
+                to_remove = []
 
-            for key, value in data["icon"].items():
-                if len(value) != 3 or not key.isdigit():
-                    to_remove.append(key)
-                else:
-                    art_list = self.game_service.unity_service.sort_sprite_list(value)
-                    if not art_list or len(art_list) != 3:
+                for key, value in data[asset_type].items():
+                    if len(value) != 3 or not key.isdigit():
                         to_remove.append(key)
+                    else:
+                        art_list = self.game_service.unity_service.sort_sprite_list(value, size)
+                        if not art_list or len(art_list) != 3:
+                            to_remove.append(key)
 
-            for key in to_remove:
-                del data["icon"][key]
+                for key in to_remove:
+                    del data[asset_type][key]
 
             self.logger.info("Removing bad deck boxes")
             to_remove = []
@@ -200,9 +201,7 @@ class DataService:
         with open("./etl/services/temp/ids.json", "w", encoding="utf-8") as outfile:
             json.dump(asdict(ids), outfile)
 
-    def process_dirs(
-        self, dir_list: List[List[Union[str, bool]]]
-    ) -> IdsData:
+    def process_dirs(self, dir_list: List[List[Union[str, bool]]]) -> IdsData:
         """Process a list of directories to extract game data.
 
         Args:
@@ -235,7 +234,6 @@ class DataService:
         ids.field.extend(result.field)
         ids.card_data.update(result.card_data)
         ids.face.update(result.face)
-        ids.coin.extend(result.coin)
 
     def add_suffix(self, names: List[str]) -> List[str]:
         """Add suffixes to duplicate names.
@@ -468,7 +466,7 @@ class DataService:
             self.logger.info("Writing Icons...")
             icons = DataFrame()
             sorted_icons = self.game_service.unity_service.sort_icon_sizes(
-                data["icon"].values()
+                data["icon"].values(), ICON_SIZES
             )
             icons.insert(0, "small", Series([icon["small"] for icon in sorted_icons]))
             icons.insert(0, "medium", Series([icon["medium"] for icon in sorted_icons]))
@@ -484,7 +482,13 @@ class DataService:
 
             self.logger.info("Writing Coins...")
             coins = DataFrame()
-            coins.insert(0, "bundle", data["coin"])
+            sorted_coins = self.game_service.unity_service.sort_icon_sizes(
+                data["coin"].values(), COIN_SIZES
+            )
+            coins.insert(0, "small", Series([coin["small"] for coin in sorted_coins]))
+            coins.insert(0, "medium", Series([coin["medium"] for coin in sorted_coins]))
+            coins.insert(0, "large", Series([coin["large"] for coin in sorted_coins]))
+            coins.insert(0, "name", data["coin"].keys())
             coins.to_parquet("./data/coins.parquet")
 
             self.logger.info("Writing Card Icons...")

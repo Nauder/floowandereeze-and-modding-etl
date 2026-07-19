@@ -202,21 +202,26 @@ class TestFaces:
 
 
 class TestCoins:
+    BUNDLE_COLS = ["large", "medium", "small"]
+
     def test_not_empty(self, coins):
         assert len(coins) > 0
 
     def test_columns(self, coins):
-        assert list(coins.columns) == ["bundle"]
+        assert set(coins.columns) == {"name", "large", "medium", "small"}
 
     def test_no_nulls(self, coins):
         assert not coins.isna().any().any()
 
-    def test_bundle_format(self, coins):
-        assert coins["bundle"].apply(_is_bundle).all()
+    def test_name_is_numeric(self, coins):
+        assert coins["name"].apply(lambda x: str(x).isdigit()).all()
 
-    #
-    # def test_no_duplicates(self, coins):
-    #     assert not coins["bundle"].duplicated().any()
+    def test_bundle_format(self, coins):
+        for col in self.BUNDLE_COLS:
+            assert coins[col].apply(_is_bundle).all()
+
+    def test_unique_names(self, coins):
+        assert not coins["name"].duplicated().any()
 
 
 class TestCardIcons:

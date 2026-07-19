@@ -87,9 +87,7 @@ class GameService:
                         self._parse_wallpaper(
                             ids, env, bundle, re.search(r"\d{4}", key).group(0)
                         )
-                    elif re.search(re.compile(r"coin\d\dtex"), key.lower()) or (
-                        "cointoss" in key.lower() and "icon" not in key.lower()
-                    ):
+                    elif "cointoss" in key.lower() and ".fbx" not in key.lower():
                         self._parse_coin(ids, env, bundle)
 
         return ids
@@ -285,5 +283,5 @@ class GameService:
         """
         for obj in env.objects:
             obj_data = obj.read()
-            if obj.type.name == "Texture2D" and "coin" in obj_data.m_Name.lower():
-                ids.coin.append(bundle)
+            if obj.type.name == "Texture2D" and "cointossicon" in obj_data.m_Name.lower():
+                ids.coin.setdefault(obj_data.m_Name[12:].lower().replace("_", ""), []).append(bundle)

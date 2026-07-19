@@ -7,7 +7,7 @@ from typing import Dict, List
 from PIL import Image
 from UnityPy import load as unity_load
 
-from util import GAME_PATH, STREAMING_PATH
+from util import GAME_PATH, STREAMING_PATH, SortSizes
 
 
 class UnityService:
@@ -83,11 +83,12 @@ class UnityService:
 
         return self.fetch_image(bundle, True)
 
-    def sort_sprite_list(self, sprite_list: List[str]) -> Dict[str, str]:
+    def sort_sprite_list(self, sprite_list: List[str], sizes: SortSizes) -> Dict[str, str]:
         """Sort a list of sprites by image size.
 
         Args:
             sprite_list: List of sprite names to sort.
+            sizes: Tuple of image sizes to sort by.
 
         Returns:
             Dictionary mapping size categories to sprite names.
@@ -97,14 +98,15 @@ class UnityService:
         for sprite in sprite_list:
             sprite_art = self.fetch_image(sprite, "spt")
 
-            if sprite_art.width == 128:
-                sorted_sprites["small"] = sprite
-            elif sprite_art.width == 256:
-                sorted_sprites["medium"] = sprite
-            elif sprite_art.width == 512:
-                sorted_sprites["large"] = sprite
-            else:
-                print(f"Could not sort {sprite} of width {sprite_art.width}")
+            match sprite_art.width:
+                case sizes.small:
+                    sorted_sprites["small"] = sprite
+                case sizes.medium:
+                    sorted_sprites["medium"] = sprite
+                case sizes.large:
+                    sorted_sprites["large"] = sprite
+                case _:
+                    print(f"Could not sort {sprite} of width {sprite_art.width}")
 
         if len(sorted_sprites) == 3:
             return sorted_sprites
@@ -112,13 +114,14 @@ class UnityService:
         print(f"Failed to sort sprites: {sprite_list} => {sorted_sprites}")
         return {}
 
-    def sort_icon_sizes(self, icons: List[List[str]]) -> List[Dict[str, str]]:
+    def sort_icon_sizes(self, icons: List[List[str]], sizes: SortSizes) -> List[Dict[str, str]]:
         """Sort multiple lists of icons by size.
 
         Args:
             icons: List of icon lists to sort.
+            sizes: Tuple of image sizes to sort by.
 
         Returns:
             List of dictionaries mapping size categories to icon names.
         """
-        return [self.sort_sprite_list(icon) for icon in icons]
+        return [self.sort_sprite_list(icon, sizes) for icon in icons]

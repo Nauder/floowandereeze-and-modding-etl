@@ -100,6 +100,11 @@ class TestMergeNestedDictLists:
         merge_nested_dict_lists(ids, IdsData(icon={"2": ["b"], "3": ["c"]}))
         assert set(ids.icon) == {"1", "2", "3"}
 
+    def test_merges_coin_lists(self):
+        ids = IdsData(coin={"1": ["bundle_a"]})
+        merge_nested_dict_lists(ids, IdsData(coin={"1": ["bundle_a", "bundle_b"]}))
+        assert ids.coin["1"] == ["bundle_a", "bundle_b"]
+
 
 class TestGetDataWrapper:
     def test_returns_ids_data_dataclass(self):
@@ -128,13 +133,14 @@ class TestGetDataWrapper:
             "wallpaper",
             "card_data",
             "face",
+            "coin",
             "card_icon",
         ):
             assert getattr(wrapper, key) == {}, f"Expected empty dict for '{key}'"
 
     def test_list_values_are_empty(self):
         wrapper = get_data_wrapper()
-        for key in ("sleeve", "field", "coin"):
+        for key in ("sleeve", "field"):
             assert getattr(wrapper, key) == [], f"Expected empty list for '{key}'"
 
     def test_returns_independent_instances(self):
