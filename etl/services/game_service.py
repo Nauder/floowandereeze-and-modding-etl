@@ -7,7 +7,7 @@ from typing import Any, Dict
 
 import UnityPy
 
-from util import STREAMING_PATH, GAME_PATH, get_data_wrapper, CARD_FACE_SIZE
+from util import CARD_FACE_SIZE, GAME_PATH, STREAMING_PATH, IdsData, get_data_wrapper
 
 from .unity_service import UnityService
 
@@ -39,7 +39,7 @@ class GameService:
         self.logger = logging.getLogger("GameService")
         self.unity_service = UnityService()
 
-    def get_dir_data(self, data_dir: str, is_streaming: bool) -> Dict[str, Any]:
+    def get_dir_data(self, data_dir: str, is_streaming: bool) -> IdsData:
         """Get data from a directory in the game files.
 
         Args:
@@ -47,7 +47,7 @@ class GameService:
             is_streaming: Whether to use streaming assets path.
 
         Returns:
-            Dictionary containing extracted data.
+            Extracted asset-bundle references.
         """
         ids = get_data_wrapper()
         for _, _, files in os.walk(
@@ -94,13 +94,13 @@ class GameService:
 
         return ids
 
-    def get_unity3d_data(self) -> Dict[str, Any]:
+    def get_unity3d_data(self) -> IdsData:
         """Get data from Unity3D files.
 
         Returns:
-            Dictionary containing Unity3D data.
+            Extracted Unity3D references.
         """
-        ids = {"card_id": {}, "face": {}, "card_icon": {}}
+        ids = get_data_wrapper()
         env = UnityPy.load(self.unity_service.prepare_unity3d_environment())
 
         self.logger.info("Got env...")
@@ -117,7 +117,7 @@ class GameService:
                         face_name in data.m_Name for face_name in self.face_names.keys()
                     )
                 ):
-                    ids["face"][self.face_names[data.m_Name]] = obj.path_id
+                    ids.face[self.face_names[data.m_Name]] = obj.path_id
                 elif obj.type.name == "SpriteAtlas":
                     atlas = obj.read()
                     if atlas.m_Name != "CardSpriteAtlas":
@@ -127,7 +127,7 @@ class GameService:
                     names = atlas.m_PackedSpriteNamesToIndex
                     for render_data, name in zip(render_data_map, names):
                         rect = render_data[1].textureRect
-                        ids["card_icon"][name] = {
+                        ids.card_icon[name] = {
                             "x": rect.x,
                             "y": 1024 - rect.y - rect.height,
                             "width": rect.width,
@@ -140,50 +140,50 @@ class GameService:
 
         return ids
 
-    def _parse_card(self, ids: Dict[str, Any], env: Any, bundle: str) -> None:
+    def _parse_card(self, ids: IdsData, env: Any, bundle: str) -> None:
         """Parse card data from Unity environment.
 
         Args:
-            ids: Dictionary to store parsed data.
+            ids: ID collection to store parsed data.
             env: Unity environment.
             bundle: Bundle name.
         """
         for obj in env.objects:
             if obj.type.name == "Texture2D":
                 obj_data = obj.read()
-                ids["card_id"][obj_data.m_Name] = bundle
+                ids.card_id[obj_data.m_Name] = bundle
 
-    def _parse_icon(self, ids: Dict[str, Any], env: Any, bundle: str) -> None:
+    def _parse_icon(self, ids: IdsData, env: Any, bundle: str) -> None:
         """Parse icon data from Unity environment.
 
         Args:
-            ids: Dictionary to store parsed data.
+            ids: ID collection to store parsed data.
             env: Unity environment.
             bundle: Bundle name.
         """
         for obj in env.objects:
             if obj.type.name == "Texture2D":
                 obj_data = obj.read()
-                ids["icon"].setdefault(obj_data.m_Name[11:18], []).append(bundle)
+                ids.icon.setdefault(obj_data.m_Name[11:18], []).append(bundle)
 
-    def _parse_sleeve(self, ids: Dict[str, Any], env: Any, bundle: str) -> None:
+    def _parse_sleeve(self, ids: IdsData, env: Any, bundle: str) -> None:
         """Parse sleeve data from Unity environment.
 
         Args:
-            ids: Dictionary to store parsed data.
+            ids: ID collection to store parsed data.
             env: Unity environment.
             bundle: Bundle name.
         """
         for obj in env.objects:
             obj_data = obj.read()
             if obj.type.name == "Texture2D" and "ProtectorIcon" in obj_data.m_Name:
-                ids["sleeve"].append(bundle)
+                ids.sleeve.append(bundle)
 
-    def _parse_deck_box(self, ids: Dict[str, Any], env: Any, bundle: str) -> None:
+    def _parse_deck_box(self, ids: IdsData, env: Any, bundle: str) -> None:
         """Parse deck box data from Unity environment.
 
         Args:
-            ids: Dictionary to store parsed data.
+            ids: ID collection to store parsed data.
             env: Unity environment.
             bundle: Bundle name.
         """
@@ -211,15 +211,15 @@ class GameService:
                         image_type = "o_large"
                     case _:
                         image_type = ""
-                if deck_id not in ids["deck_box"]:
-                    ids["deck_box"][deck_id] = {}
-                ids["deck_box"][deck_id][image_type] = bundle
+                if deck_id not in ids.deck_box:
+                    ids.deck_box[deck_id] = {}
+                ids.deck_box[deck_id][image_type] = bundle
 
-    def _parse_field(self, ids: Dict[str, Any], env: Any, bundle: str) -> None:
+    def _parse_field(self, ids: IdsData, env: Any, bundle: str) -> None:
         """Parse field data from Unity environment.
 
         Args:
-            ids: Dictionary to store parsed data.
+            ids: ID collection to store parsed data.
             env: Unity environment.
             bundle: Bundle name.
         """
@@ -232,15 +232,15 @@ class GameService:
                 )
                 and obj.type.name == "Texture2D"
             ):
-                ids["field"].append(bundle)
+                ids.field.append(bundle)
 
     def _parse_wallpaper(
-        self, ids: Dict[str, Any], env: Any, bundle: str, wallpaper: str
+        self, ids: IdsData, env: Any, bundle: str, wallpaper: str
     ) -> None:
         """Parse wallpaper data from Unity environment.
 
         Args:
-            ids: Dictionary to store parsed data.
+            ids: ID collection to store parsed data.
             env: Unity environment.
             bundle: Bundle name.
             wallpaper: Wallpaper identifier.
@@ -248,24 +248,24 @@ class GameService:
         for obj in env.objects:
             obj_data = obj.read()
             if obj.type.name == "Texture2D":
-                if wallpaper not in ids["wallpaper"]:
-                    ids["wallpaper"][wallpaper] = {}
+                if wallpaper not in ids.wallpaper:
+                    ids.wallpaper[wallpaper] = {}
                 if "Icon" in obj_data.m_Name:
-                    ids["wallpaper"][wallpaper]["icon"] = bundle
+                    ids.wallpaper[wallpaper]["icon"] = bundle
                 elif "_1" in obj_data.m_Name:
-                    ids["wallpaper"][wallpaper]["front"] = bundle
+                    ids.wallpaper[wallpaper]["front"] = bundle
                 elif "_2" in obj_data.m_Name:
-                    ids["wallpaper"][wallpaper]["back"] = bundle
+                    ids.wallpaper[wallpaper]["back"] = bundle
 
     def _parse_card_data_part(
-        self, env: Any, part: str, ids: Dict[str, Any], bundle: str
+        self, env: Any, part: str, ids: IdsData, bundle: str
     ) -> None:
         """Parse card data part from Unity environment.
 
         Args:
             env: Unity environment.
             part: Part identifier.
-            ids: Dictionary to store parsed data.
+            ids: ID collection to store parsed data.
             bundle: Bundle name.
         """
         for obj in env.objects:
@@ -273,17 +273,17 @@ class GameService:
             if obj.type.name == "TextAsset":
                 with open(f"./etl/services/temp/{part}", "wb") as f:
                     f.write(data.m_Script.encode("utf-8", "surrogateescape"))
-                ids["card_data"][part] = bundle
+                ids.card_data[part] = bundle
 
-    def _parse_coin(self, ids: Dict[str, Any], env: Any, bundle: str) -> None:
+    def _parse_coin(self, ids: IdsData, env: Any, bundle: str) -> None:
         """Parse coin data from Unity environment.
 
         Args:
-            ids: Dictionary to store parsed data.
+            ids: ID collection to store parsed data.
             env: Unity environment.
             bundle: Bundle name.
         """
         for obj in env.objects:
             obj_data = obj.read()
             if obj.type.name == "Texture2D" and "coin" in obj_data.m_Name.lower():
-                ids["coin"].append(bundle)
+                ids.coin.append(bundle)

@@ -3,6 +3,7 @@
 import json
 import os
 import shutil
+from dataclasses import dataclass, field as dataclass_field
 from os.path import join
 from typing import Any, Dict, List
 
@@ -33,19 +34,35 @@ STREAMING_PATH = join(
 CARD_FACE_SIZE = 720896
 
 
-def merge_nested_dict_lists(dict1: Dict[str, Any], dict2: Dict[str, Any]) -> None:
-    """Merge nested dictionary lists, handling duplicate values.
+@dataclass
+class IdsData:
+    """Collected asset-bundle references found while extracting game data."""
+
+    card_id: Dict[str, str] = dataclass_field(default_factory=dict)
+    sleeve: List[str] = dataclass_field(default_factory=list)
+    icon: Dict[str, List[str]] = dataclass_field(default_factory=dict)
+    deck_box: Dict[int, Dict[str, str]] = dataclass_field(default_factory=dict)
+    field: List[str] = dataclass_field(default_factory=list)
+    wallpaper: Dict[str, Dict[str, str]] = dataclass_field(default_factory=dict)
+    card_data: Dict[str, str] = dataclass_field(default_factory=dict)
+    face: Dict[str, int] = dataclass_field(default_factory=dict)
+    coin: List[str] = dataclass_field(default_factory=list)
+    card_icon: Dict[str, Dict[str, float]] = dataclass_field(default_factory=dict)
+
+
+def merge_nested_dict_lists(ids: IdsData, result: IdsData) -> None:
+    """Merge icon references into an ID collection, removing duplicates.
 
     Args:
-        dict1: First dictionary to merge into.
-        dict2: Second dictionary to merge from.
+        ids: ID collection to merge into.
+        result: ID collection to merge from.
     """
-    for key, value in dict2["icon"].items():
-        if key in dict1["icon"]:
-            dict1["icon"][key].extend(value)
-            dict1["icon"][key] = list(dict.fromkeys(dict1["icon"][key]))
+    for key, value in result.icon.items():
+        if key in ids.icon:
+            ids.icon[key].extend(value)
+            ids.icon[key] = list(dict.fromkeys(ids.icon[key]))
         else:
-            dict1["icon"][key] = value
+            ids.icon[key] = value
 
 
 def merge_nested_dicts(dict1: Dict[str, Any], dict2: Dict[str, Any]) -> Dict[str, Any]:
@@ -121,30 +138,6 @@ def clear_directory(directory_path: str) -> None:
             shutil.rmtree(entry_path)
 
 
-def get_data_wrapper() -> Dict[str, Any]:
-    """
-    Get a data wrapper for the ETL process.
-
-    Returns:
-        A dictionary with the following keys:
-        - card_id: A dictionary for card IDs.
-        - sleeve: A list of sleeve IDs.
-        - icon: A dictionary for icons.
-        - deck_box: A dictionary for deck boxes.
-        - field: A list of field IDs.
-        - wallpaper: A dictionary for wallpapers.
-        - card_data: A dictionary for card data.
-        - face: A dictionary for face data.
-    """
-    return {
-        "card_id": {},
-        "sleeve": [],
-        "icon": {},
-        "deck_box": {},
-        "field": [],
-        "wallpaper": {},
-        "card_data": {},
-        "face": {},
-        "coin": [],
-        "card_icon": {},
-    }
+def get_data_wrapper() -> IdsData:
+    """Create an empty ID collection for the ETL extraction process."""
+    return IdsData()

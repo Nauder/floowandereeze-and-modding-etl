@@ -7,6 +7,7 @@ from unittest.mock import patch
 import pytest
 
 from services.data_service import DataService
+from util import IdsData
 
 
 @pytest.fixture
@@ -90,59 +91,46 @@ class TestRemoveExtraSuffix:
 
 class TestMergeData:
     def _wrapper(self, **overrides):
-        base = {
-            "card_id": {},
-            "sleeve": [],
-            "icon": {},
-            "deck_box": {},
-            "field": [],
-            "wallpaper": {},
-            "card_data": {},
-            "face": {},
-            "coin": [],
-            "card_icon": {},
-        }
-        base.update(overrides)
-        return base
+        return IdsData(**overrides)
 
     def test_merges_card_ids(self, data_service):
         ids = self._wrapper(card_id={"a": 1})
         data_service.merge_data(ids, self._wrapper(card_id={"b": 2}))
-        assert ids["card_id"] == {"a": 1, "b": 2}
+        assert ids.card_id == {"a": 1, "b": 2}
 
     def test_extends_sleeve_list(self, data_service):
         ids = self._wrapper(sleeve=["s1"])
         data_service.merge_data(ids, self._wrapper(sleeve=["s2"]))
-        assert ids["sleeve"] == ["s1", "s2"]
+        assert ids.sleeve == ["s1", "s2"]
 
     def test_extends_field_list(self, data_service):
         ids = self._wrapper(field=["f1"])
         data_service.merge_data(ids, self._wrapper(field=["f2"]))
-        assert ids["field"] == ["f1", "f2"]
+        assert ids.field == ["f1", "f2"]
 
     def test_extends_coin_list(self, data_service):
         ids = self._wrapper(coin=["c1"])
         data_service.merge_data(ids, self._wrapper(coin=["c2"]))
-        assert ids["coin"] == ["c1", "c2"]
+        assert ids.coin == ["c1", "c2"]
 
     def test_merges_card_data(self, data_service):
         ids = self._wrapper(card_data={"part_a": "bundle_1"})
         data_service.merge_data(ids, self._wrapper(card_data={"part_b": "bundle_2"}))
-        assert ids["card_data"] == {"part_a": "bundle_1", "part_b": "bundle_2"}
+        assert ids.card_data == {"part_a": "bundle_1", "part_b": "bundle_2"}
 
     def test_merges_face_data(self, data_service):
         ids = self._wrapper(face={"Normal": {"key": 0}})
         data_service.merge_data(ids, self._wrapper(face={"Effect": {"key": 1}}))
-        assert "Normal" in ids["face"]
-        assert "Effect" in ids["face"]
+        assert "Normal" in ids.face
+        assert "Effect" in ids.face
 
     def test_icon_deduplication_via_nested_dict_lists(self, data_service):
         ids = self._wrapper(icon={"100": ["bundle_a"]})
         data_service.merge_data(
             ids, self._wrapper(icon={"100": ["bundle_a", "bundle_b"]})
         )
-        assert ids["icon"]["100"].count("bundle_a") == 1
-        assert "bundle_b" in ids["icon"]["100"]
+        assert ids.icon["100"].count("bundle_a") == 1
+        assert "bundle_b" in ids.icon["100"]
 
 
 class TestCleanData:

@@ -4,6 +4,7 @@ import json
 import logging
 import os
 from concurrent.futures import ThreadPoolExecutor
+from dataclasses import asdict
 from os.path import isfile
 from typing import Any, Dict, List, Union
 from datetime import datetime
@@ -13,6 +14,7 @@ from pandas import DataFrame, Series
 from util import (
     EXCLUDED_SLEEVES,
     GAME_PATH,
+    IdsData,
     get_data_wrapper,
     merge_nested_dict_lists,
     merge_nested_dicts,
@@ -190,24 +192,24 @@ class DataService:
 
         unity3d_data = self.game_service.get_unity3d_data()
 
-        ids["face"].update(unity3d_data["face"])
-        ids["card_icon"].update(unity3d_data["card_icon"])
+        ids.face.update(unity3d_data.face)
+        ids.card_icon.update(unity3d_data.card_icon)
 
         self.logger.info("Saving ids...")
 
         with open("./etl/services/temp/ids.json", "w", encoding="utf-8") as outfile:
-            json.dump(ids, outfile)
+            json.dump(asdict(ids), outfile)
 
     def process_dirs(
         self, dir_list: List[List[Union[str, bool]]]
-    ) -> Dict[str, Union[Dict[str, Any], List[Any]]]:
+    ) -> IdsData:
         """Process a list of directories to extract game data.
 
         Args:
             dir_list: List of [directory_name, is_streaming] pairs.
 
         Returns:
-            Dictionary containing extracted data.
+            Extracted asset-bundle references.
         """
         local_ids = get_data_wrapper()
         for data_dir, is_streaming in dir_list:
@@ -218,22 +220,22 @@ class DataService:
 
         return local_ids
 
-    def merge_data(self, ids: Dict[str, Any], result: Dict[str, Any]) -> None:
+    def merge_data(self, ids: IdsData, result: IdsData) -> None:
         """Merge extracted data into the main data structure.
 
         Args:
-            ids: Main data structure to merge into.
+            ids: Main ID collection to merge into.
             result: Data to merge.
         """
-        ids["card_id"].update(result["card_id"])
-        ids["sleeve"].extend(result["sleeve"])
+        ids.card_id.update(result.card_id)
+        ids.sleeve.extend(result.sleeve)
         merge_nested_dict_lists(ids, result)
-        merge_nested_dicts(ids["deck_box"], result["deck_box"])
-        merge_nested_dicts(ids["wallpaper"], result["wallpaper"])
-        ids["field"].extend(result["field"])
-        ids["card_data"].update(result["card_data"])
-        ids["face"].update(result["face"])
-        ids["coin"].extend(result["coin"])
+        merge_nested_dicts(ids.deck_box, result.deck_box)
+        merge_nested_dicts(ids.wallpaper, result.wallpaper)
+        ids.field.extend(result.field)
+        ids.card_data.update(result.card_data)
+        ids.face.update(result.face)
+        ids.coin.extend(result.coin)
 
     def add_suffix(self, names: List[str]) -> List[str]:
         """Add suffixes to duplicate names.

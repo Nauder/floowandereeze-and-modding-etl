@@ -2,7 +2,15 @@
 
 # pylint: disable=missing-class-docstring,missing-function-docstring,use-implicit-booleaness-not-comparison,duplicate-code
 
-from util import chunkify, get_data_wrapper, merge_nested_dict_lists, merge_nested_dicts
+from dataclasses import fields
+
+from util import (
+    IdsData,
+    chunkify,
+    get_data_wrapper,
+    merge_nested_dict_lists,
+    merge_nested_dicts,
+)
 
 
 class TestChunkify:
@@ -71,30 +79,30 @@ class TestMergeNestedDicts:
 
 class TestMergeNestedDictLists:
     def test_adds_new_icon_key(self):
-        d1 = {"icon": {}}
-        merge_nested_dict_lists(d1, {"icon": {"id1": ["bundle_a"]}})
-        assert d1["icon"]["id1"] == ["bundle_a"]
+        ids = IdsData()
+        merge_nested_dict_lists(ids, IdsData(icon={"id1": ["bundle_a"]}))
+        assert ids.icon["id1"] == ["bundle_a"]
 
     def test_extends_existing_list(self):
-        d1 = {"icon": {"id1": ["bundle_a"]}}
-        merge_nested_dict_lists(d1, {"icon": {"id1": ["bundle_b"]}})
-        assert set(d1["icon"]["id1"]) == {"bundle_a", "bundle_b"}
+        ids = IdsData(icon={"id1": ["bundle_a"]})
+        merge_nested_dict_lists(ids, IdsData(icon={"id1": ["bundle_b"]}))
+        assert set(ids.icon["id1"]) == {"bundle_a", "bundle_b"}
 
     def test_deduplicates_on_extend(self):
-        d1 = {"icon": {"id1": ["bundle_a", "bundle_b"]}}
-        merge_nested_dict_lists(d1, {"icon": {"id1": ["bundle_a", "bundle_c"]}})
-        assert d1["icon"]["id1"].count("bundle_a") == 1
-        assert "bundle_b" in d1["icon"]["id1"]
-        assert "bundle_c" in d1["icon"]["id1"]
+        ids = IdsData(icon={"id1": ["bundle_a", "bundle_b"]})
+        merge_nested_dict_lists(ids, IdsData(icon={"id1": ["bundle_a", "bundle_c"]}))
+        assert ids.icon["id1"].count("bundle_a") == 1
+        assert "bundle_b" in ids.icon["id1"]
+        assert "bundle_c" in ids.icon["id1"]
 
     def test_multiple_keys_merged(self):
-        d1 = {"icon": {"1": ["a"]}}
-        merge_nested_dict_lists(d1, {"icon": {"2": ["b"], "3": ["c"]}})
-        assert set(d1["icon"].keys()) == {"1", "2", "3"}
+        ids = IdsData(icon={"1": ["a"]})
+        merge_nested_dict_lists(ids, IdsData(icon={"2": ["b"], "3": ["c"]}))
+        assert set(ids.icon) == {"1", "2", "3"}
 
 
 class TestGetDataWrapper:
-    def test_has_all_required_keys(self):
+    def test_returns_ids_data_dataclass(self):
         expected = {
             "card_id",
             "sleeve",
@@ -107,7 +115,9 @@ class TestGetDataWrapper:
             "coin",
             "card_icon",
         }
-        assert set(get_data_wrapper().keys()) == expected
+        wrapper = get_data_wrapper()
+        assert isinstance(wrapper, IdsData)
+        assert {data_field.name for data_field in fields(wrapper)} == expected
 
     def test_dict_values_are_empty(self):
         wrapper = get_data_wrapper()
@@ -120,15 +130,15 @@ class TestGetDataWrapper:
             "face",
             "card_icon",
         ):
-            assert wrapper[key] == {}, f"Expected empty dict for '{key}'"
+            assert getattr(wrapper, key) == {}, f"Expected empty dict for '{key}'"
 
     def test_list_values_are_empty(self):
         wrapper = get_data_wrapper()
         for key in ("sleeve", "field", "coin"):
-            assert wrapper[key] == [], f"Expected empty list for '{key}'"
+            assert getattr(wrapper, key) == [], f"Expected empty list for '{key}'"
 
     def test_returns_independent_instances(self):
         w1 = get_data_wrapper()
         w2 = get_data_wrapper()
-        w1["sleeve"].append("sentinel")
-        assert w2["sleeve"] == []
+        w1.sleeve.append("sentinel")
+        assert w2.sleeve == []
