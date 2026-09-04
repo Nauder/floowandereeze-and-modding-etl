@@ -60,18 +60,27 @@ class GameService:
                 for key in env.container.keys():
                     if data_dir.lower() == "c7":
                         pass
-                    if (
-                        "card/images/illust/common/" in key
-                        or "card/images/illust/tcg/" in key
-                    ) and "_info" not in key:
+                    if "card/images/illust/common/" in key and "_info" not in key:
                         self._parse_card(ids, env, bundle)
+                        self._parse_ocg_card(ids, env, bundle)
+
+                    elif "card/images/illust/tcg/" in key and "_info" not in key:
+                        self._parse_card(ids, env, bundle)
+
+                    elif "card/images/illust/ocg/" in key and "_info" not in key:
+                        self._parse_ocg_card(ids, env, bundle)
+
                     elif "images/profileicon/" in key:
                         self._parse_icon(ids, env, bundle)
-                    elif (
-                        "assets/resourcesassetbundle/protector/common/" in key
-                        or "assets/resourcesassetbundle/protector/tcg/" in key
-                    ):
+                    elif "assets/resourcesassetbundle/protector/common/" in key:
                         self._parse_sleeve(ids, env, bundle)
+                        self._parse_ocg_sleeve(ids, env, bundle)
+
+                    elif "assets/resourcesassetbundle/protector/tcg/" in key:
+                        self._parse_sleeve(ids, env, bundle)
+
+                    elif "assets/resourcesassetbundle/protector/ocg/" in key:
+                        self._parse_ocg_sleeve(ids, env, bundle)
                     elif "assets/resourcesassetbundle/images/deckcase" in key:
                         self._parse_deck_box(ids, env, bundle)
                     elif re.search(re.compile(r"mat_0\d\d_near"), key.lower()):
@@ -151,6 +160,19 @@ class GameService:
                 obj_data = obj.read()
                 ids.card_id[obj_data.m_Name] = bundle
 
+    def _parse_ocg_card(self, ids: IdsData, env: Any, bundle: str) -> None:
+        """Parse OCG card data from Unity environment.
+
+        Args:
+            ids: ID collection to store parsed data.
+            env: Unity environment.
+            bundle: Bundle name.
+        """
+        for obj in env.objects:
+            if obj.type.name == "Texture2D":
+                obj_data = obj.read()
+                ids.ocg_card_id[obj_data.m_Name] = bundle
+
     def _parse_icon(self, ids: IdsData, env: Any, bundle: str) -> None:
         """Parse icon data from Unity environment.
 
@@ -176,6 +198,19 @@ class GameService:
             obj_data = obj.read()
             if obj.type.name == "Texture2D" and "ProtectorIcon" in obj_data.m_Name:
                 ids.sleeve.append(bundle)
+
+    def _parse_ocg_sleeve(self, ids: IdsData, env: Any, bundle: str) -> None:
+        """Parse OCG sleeve data from Unity environment.
+
+        Args:
+            ids: ID collection to store parsed data.
+            env: Unity environment.
+            bundle: Bundle name.
+        """
+        for obj in env.objects:
+            obj_data = obj.read()
+            if obj.type.name == "Texture2D" and "ProtectorIcon" in obj_data.m_Name:
+                ids.ocg_sleeve.append(bundle)
 
     def _parse_deck_box(self, ids: IdsData, env: Any, bundle: str) -> None:
         """Parse deck box data from Unity environment.
