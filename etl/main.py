@@ -39,6 +39,8 @@ if __name__ == "__main__":
 
     data_service = DataService()
 
+    data_service.create_temp_folders()
+    
     logger.info("Getting ids...")
     data_service.get_ids()
     logger.info(DONE_MESSAGE)
