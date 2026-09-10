@@ -231,7 +231,9 @@ class DataService:
             result: Data to merge.
         """
         ids.card_id.update(result.card_id)
+        ids.ocg_card_id.update(result.ocg_card_id)
         ids.sleeve.extend(result.sleeve)
+        ids.ocg_sleeve.extend(result.ocg_sleeve)
         merge_nested_dict_lists(ids, result)
         merge_nested_dicts(ids.deck_box, result.deck_box)
         merge_nested_dicts(ids.wallpaper, result.wallpaper)
@@ -342,7 +344,20 @@ class DataService:
                 }
             )
 
+            updated_ocg_card_id = self.remove_extra_suffix(
+                {
+                    id_names.get(int(key), key)[1]: [
+                        value,
+                        id_names.get(int(key), key)[0],
+                        id_names.get(int(key), key)[2],
+                    ]
+                    for key, value in ids["ocg_card_id"].items()
+                }
+            )
+
             ids["card_names"] = updated_card_id
+            ids["ocg_card_names"] = updated_ocg_card_id
+
             ids["legacy"] = {
                 name: value[0] for name, value in ids["card_names"].items()
             }
@@ -361,6 +376,10 @@ class DataService:
             sleeves = DataFrame()
             sleeves.insert(0, "bundle", data["sleeve"])
             sleeves.to_parquet("./data/sleeves.parquet")
+            self.logger.info("Writing OCG Sleeves...")
+            ocg_sleeves = DataFrame()
+            ocg_sleeves.insert(0, "bundle", data["ocg_sleeve"])
+            ocg_sleeves.to_parquet("./data/sleeves_ocg.parquet")
 
             self.logger.info("Writing Cards...")
             cards = DataFrame()
@@ -379,6 +398,26 @@ class DataService:
                 Series([value[2] for value in data["card_names"].values()]),
             )
             cards.to_parquet("./data/cards.parquet")
+
+            self.logger.info("Writing OCG Cards...")
+            ocg_cards = DataFrame()
+            ocg_cards.insert(0, "name", data["ocg_card_names"].keys())
+            ocg_cards.insert(
+                0,
+                "bundle",
+                Series([value[0] for value in data["ocg_card_names"].values()]),
+            )
+            ocg_cards.insert(
+                0,
+                "description",
+                Series([value[1] for value in data["ocg_card_names"].values()]),
+            )
+            ocg_cards.insert(
+                0,
+                "data_index",
+                Series([value[2] for value in data["ocg_card_names"].values()]),
+            )
+            ocg_cards.to_parquet("./data/cards_ocg.parquet")
 
             self.logger.info("Writing Fields...")
             fields = DataFrame()

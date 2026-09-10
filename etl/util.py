@@ -39,7 +39,9 @@ class IdsData:
     """Collected asset-bundle references found while extracting game data."""
 
     card_id: Dict[str, str] = dataclass_field(default_factory=dict)
+    ocg_card_id: Dict[str, str] = dataclass_field(default_factory=dict)
     sleeve: List[str] = dataclass_field(default_factory=list)
+    ocg_sleeve: List[str] = dataclass_field(default_factory=list)
     icon: Dict[str, List[str]] = dataclass_field(default_factory=dict)
     deck_box: Dict[int, Dict[str, str]] = dataclass_field(default_factory=dict)
     field: List[str] = dataclass_field(default_factory=list)
