@@ -26,6 +26,11 @@ def cards():
 
 
 @pytest.fixture(scope="module")
+def ocg_cards():
+    return _load("cards_ocg.parquet")
+
+
+@pytest.fixture(scope="module")
 def icons():
     return _load("icons.parquet")
 
@@ -38,6 +43,11 @@ def deck_boxes():
 @pytest.fixture(scope="module")
 def sleeves():
     return _load("sleeves.parquet")
+
+
+@pytest.fixture(scope="module")
+def ocg_sleeves():
+    return _load("sleeves_ocg.parquet")
 
 
 @pytest.fixture(scope="module")
@@ -88,6 +98,31 @@ class TestCards:
 
     def test_data_index_non_negative(self, cards):
         assert (cards["data_index"] >= 0).all()
+
+
+class TestOCGCards:
+    def test_not_empty(self, ocg_cards):
+        assert len(ocg_cards) > 0
+
+    def test_columns(self, ocg_cards):
+        assert set(ocg_cards.columns) == {
+            "data_index",
+            "description",
+            "bundle",
+            "name",
+        }
+
+    def test_no_nulls(self, ocg_cards):
+        assert not ocg_cards.isna().any().any()
+
+    def test_unique_names(self, ocg_cards):
+        assert not ocg_cards["name"].duplicated().any()
+
+    def test_bundle_format(self, ocg_cards):
+        assert ocg_cards["bundle"].apply(_is_bundle).all()
+
+    def test_data_index_non_negative(self, ocg_cards):
+        assert (ocg_cards["data_index"] >= 0).all()
 
 
 class TestIcons:
@@ -163,6 +198,20 @@ class TestSleeves:
 
     def test_no_duplicates(self, sleeves):
         assert not sleeves["bundle"].duplicated().any()
+
+
+class TestOCGSleeves:
+    def test_columns(self, ocg_sleeves):
+        assert list(ocg_sleeves.columns) == ["bundle"]
+
+    def test_no_nulls(self, ocg_sleeves):
+        assert not ocg_sleeves.isna().any().any()
+
+    def test_bundle_format(self, ocg_sleeves):
+        assert ocg_sleeves["bundle"].apply(_is_bundle).all()
+
+    def test_no_duplicates(self, ocg_sleeves):
+        assert not ocg_sleeves["bundle"].duplicated().any()
 
 
 class TestWallpapers:

@@ -110,7 +110,9 @@ class TestGetDataWrapper:
     def test_returns_ids_data_dataclass(self):
         expected = {
             "card_id",
+            "ocg_card_id",
             "sleeve",
+            "ocg_sleeve",
             "icon",
             "deck_box",
             "field",
@@ -128,6 +130,7 @@ class TestGetDataWrapper:
         wrapper = get_data_wrapper()
         for key in (
             "card_id",
+            "ocg_card_id",
             "icon",
             "deck_box",
             "wallpaper",
@@ -140,11 +143,15 @@ class TestGetDataWrapper:
 
     def test_list_values_are_empty(self):
         wrapper = get_data_wrapper()
-        for key in ("sleeve", "field"):
+        for key in ("sleeve", "ocg_sleeve", "field"):
             assert getattr(wrapper, key) == [], f"Expected empty list for '{key}'"
 
     def test_returns_independent_instances(self):
         w1 = get_data_wrapper()
         w2 = get_data_wrapper()
         w1.sleeve.append("sentinel")
+        w1.ocg_card_id["sentinel"] = "bundle"
+        w1.ocg_sleeve.append("sentinel")
         assert w2.sleeve == []
+        assert w2.ocg_card_id == {}
+        assert w2.ocg_sleeve == []

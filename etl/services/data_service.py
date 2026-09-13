@@ -559,7 +559,7 @@ class DataService:
             self.logger.info("Updating Version...")
             with open("./data/version.txt", "w", encoding="utf-8") as file:
                 file.write(datetime.today().strftime("%Y-%m-%d"))
-    
+
     def create_temp_folders(self) -> None:
         path = Path("./etl/services/temp/ids.json")
         path.parent.mkdir(parents=True, exist_ok=True)

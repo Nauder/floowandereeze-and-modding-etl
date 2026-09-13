@@ -100,10 +100,20 @@ class TestMergeData:
         data_service.merge_data(ids, self._wrapper(card_id={"b": 2}))
         assert ids.card_id == {"a": 1, "b": 2}
 
+    def test_merges_ocg_card_ids(self, data_service):
+        ids = self._wrapper(ocg_card_id={"a": 1})
+        data_service.merge_data(ids, self._wrapper(ocg_card_id={"b": 2}))
+        assert ids.ocg_card_id == {"a": 1, "b": 2}
+
     def test_extends_sleeve_list(self, data_service):
         ids = self._wrapper(sleeve=["s1"])
         data_service.merge_data(ids, self._wrapper(sleeve=["s2"]))
         assert ids.sleeve == ["s1", "s2"]
+
+    def test_extends_ocg_sleeve_list(self, data_service):
+        ids = self._wrapper(ocg_sleeve=["s1"])
+        data_service.merge_data(ids, self._wrapper(ocg_sleeve=["s2"]))
+        assert ids.ocg_sleeve == ["s1", "s2"]
 
     def test_extends_field_list(self, data_service):
         ids = self._wrapper(field=["f1"])
@@ -273,7 +283,7 @@ class TestWriteData:  # pylint: disable=too-few-public-methods
         data_path.mkdir(parents=True)
         (tmp_path / "data").mkdir()
 
-        def sort_asset_sizes(asset_lists):
+        def sort_asset_sizes(asset_lists, _sizes):
             return [
                 {
                     "large": asset_list[0],
@@ -300,7 +310,9 @@ class TestWriteData:  # pylint: disable=too-few-public-methods
         }
         data = {
             "sleeve": ["sleeve_bundle"],
+            "ocg_sleeve": ["ocg_sleeve_bundle"],
             "card_names": {"Card": ["card_bundle", "description", 0]},
+            "ocg_card_names": {"OCG Card": ["ocg_card_bundle", "ocg description", 1]},
             "field": {"field_bundle": {"bottom": False, "flipped": False}},
             "wallpaper": {
                 "1": {
@@ -320,6 +332,24 @@ class TestWriteData:  # pylint: disable=too-few-public-methods
             json.dump(data, data_file)
 
         data_service.write_data()
+
+        ocg_sleeves = read_parquet(tmp_path / "data" / "sleeves_ocg.parquet")
+        assert list(ocg_sleeves.columns) == ["bundle"]
+        assert ocg_sleeves["bundle"].tolist() == ["ocg_sleeve_bundle"]
+
+        ocg_cards = read_parquet(tmp_path / "data" / "cards_ocg.parquet")
+        assert list(ocg_cards.columns) == [
+            "data_index",
+            "description",
+            "bundle",
+            "name",
+        ]
+        assert ocg_cards.iloc[0].to_dict() == {
+            "data_index": 1,
+            "description": "ocg description",
+            "bundle": "ocg_card_bundle",
+            "name": "OCG Card",
+        }
 
         coins = read_parquet(tmp_path / "data" / "coins.parquet")
         assert list(coins.columns) == ["name", "large", "medium", "small"]
