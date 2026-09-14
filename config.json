@@ -1,5 +1,6 @@
 {
   "game_path": "",
+  "ocg_game_path": "",
   "num_threads": 8,
   "excluded_sleeves": [
     "1f72cd59",
