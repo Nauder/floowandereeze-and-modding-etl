@@ -26,6 +26,44 @@ def data_service():
     return svc
 
 
+class TestGameRoots:
+    def test_missing_ocg_path_warns_and_returns_only_global_roots(
+        self, data_service, caplog
+    ):
+        with patch("services.data_service.OCG_GAME_PATH", ""):
+            roots = data_service.get_game_roots()
+
+        assert len(roots) == 2
+        assert all(not root[3] for root in roots)
+        assert "skipping OCG asset metadata extraction" in caplog.text
+
+    def test_invalid_ocg_path_warns_and_returns_only_global_roots(
+        self, data_service, caplog
+    ):
+        with (
+            patch("services.data_service.OCG_GAME_PATH", "missing"),
+            patch("services.data_service.os.path.isdir", return_value=False),
+        ):
+            roots = data_service.get_game_roots()
+
+        assert len(roots) == 2
+        assert "skipping OCG asset metadata extraction" in caplog.text
+
+    def test_valid_ocg_path_adds_ocg_only_roots(self, data_service, tmp_path):
+        ocg_path = str(tmp_path)
+        streaming_path = str(tmp_path / "StreamingAssets" / "AssetBundle")
+        with (
+            patch("services.data_service.OCG_GAME_PATH", ocg_path),
+            patch("services.data_service.OCG_STREAMING_PATH", streaming_path),
+        ):
+            roots = data_service.get_game_roots()
+
+        assert roots[-2:] == [
+            (False, ocg_path, ocg_path, True),
+            (True, streaming_path, ocg_path, True),
+        ]
+
+
 class TestAddSuffix:
     def test_no_duplicates_unchanged(self, data_service):
         assert data_service.add_suffix(["Alpha", "Beta", "Gamma"]) == [

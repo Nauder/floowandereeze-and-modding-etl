@@ -4,7 +4,14 @@ import logging
 
 from services.data_service import DataService
 from services.decode_service import DecodeService
-from util import print_splash, BColors, GAME_PATH, NUM_THREADS, clear_directory
+from util import (
+    print_splash,
+    BColors,
+    GAME_PATH,
+    OCG_GAME_PATH,
+    NUM_THREADS,
+    clear_directory,
+)
 
 
 def decode_card_data() -> None:
@@ -28,6 +35,12 @@ if __name__ == "__main__":
         '%sGame path: "%s"%s',
         BColors.OKCYAN,
         GAME_PATH,
+        BColors.ENDC,
+    )
+    logger.info(
+        '%sOCG game path: "%s"%s',
+        BColors.OKCYAN,
+        OCG_GAME_PATH or "Not configured",
         BColors.ENDC,
     )
     logger.info(

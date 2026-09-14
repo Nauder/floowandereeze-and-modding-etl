@@ -7,7 +7,13 @@ from typing import Any, Dict
 
 import UnityPy
 
-from util import CARD_FACE_SIZE, GAME_PATH, STREAMING_PATH, IdsData, get_data_wrapper
+from util import (
+    CARD_FACE_SIZE,
+    GAME_PATH,
+    IdsData,
+    get_data_wrapper,
+    get_streaming_path,
+)
 
 from .unity_service import UnityService
 
@@ -39,64 +45,103 @@ class GameService:
         self.logger = logging.getLogger("GameService")
         self.unity_service = UnityService()
 
-    def get_dir_data(self, data_dir: str, is_streaming: bool) -> IdsData:
+    def get_dir_data(
+        self,
+        data_dir: str,
+        is_streaming: bool,
+        game_path: str = GAME_PATH,
+        ocg_only: bool = False,
+    ) -> IdsData:
         """Get data from a directory in the game files.
 
         Args:
             data_dir: Directory to extract data from.
             is_streaming: Whether to use streaming assets path.
+            game_path: LocalData path for the game version being scanned.
+            ocg_only: Whether to extract only OCG card and sleeve metadata.
 
         Returns:
             Extracted asset-bundle references.
         """
         ids = get_data_wrapper()
-        for _, _, files in os.walk(
-            os.path.join(STREAMING_PATH if is_streaming else GAME_PATH, data_dir)
-        ):
+        root_path = get_streaming_path(game_path) if is_streaming else game_path
+        for _, _, files in os.walk(os.path.join(root_path, data_dir)):
             for bundle in files:
                 env = UnityPy.load(
-                    self.unity_service.prepare_environment(is_streaming, bundle)
+                    self.unity_service.prepare_environment(
+                        is_streaming, bundle, game_path
+                    )
                 )
                 for key in env.container.keys():
                     if data_dir.lower() == "c7":
                         pass
                     if "card/images/illust/common/" in key and "_info" not in key:
+                        if ocg_only:
+                            self._parse_ocg_card(ids, env, bundle)
+                        else:
+                            self._parse_card(ids, env, bundle)
+
+                    elif (
+                        not ocg_only
+                        and "card/images/illust/tcg/" in key
+                        and "_info" not in key
+                    ):
                         self._parse_card(ids, env, bundle)
+
+                    elif (
+                        ocg_only
+                        and "card/images/illust/ocg/" in key
+                        and "_info" not in key
+                    ):
                         self._parse_ocg_card(ids, env, bundle)
 
-                    elif "card/images/illust/tcg/" in key and "_info" not in key:
-                        self._parse_card(ids, env, bundle)
-
-                    elif "card/images/illust/ocg/" in key and "_info" not in key:
-                        self._parse_ocg_card(ids, env, bundle)
-
-                    elif "images/profileicon/" in key:
+                    elif not ocg_only and "images/profileicon/" in key:
                         self._parse_icon(ids, env, bundle)
                     elif "assets/resourcesassetbundle/protector/common/" in key:
-                        self._parse_sleeve(ids, env, bundle)
-                        self._parse_ocg_sleeve(ids, env, bundle)
+                        if ocg_only:
+                            self._parse_ocg_sleeve(ids, env, bundle)
+                        else:
+                            self._parse_sleeve(ids, env, bundle)
 
-                    elif "assets/resourcesassetbundle/protector/tcg/" in key:
+                    elif (
+                        not ocg_only
+                        and "assets/resourcesassetbundle/protector/tcg/" in key
+                    ):
                         self._parse_sleeve(ids, env, bundle)
 
-                    elif "assets/resourcesassetbundle/protector/ocg/" in key:
+                    elif (
+                        ocg_only and "assets/resourcesassetbundle/protector/ocg/" in key
+                    ):
                         self._parse_ocg_sleeve(ids, env, bundle)
-                    elif "assets/resourcesassetbundle/images/deckcase" in key:
+                    elif (
+                        not ocg_only
+                        and "assets/resourcesassetbundle/images/deckcase" in key
+                    ):
                         self._parse_deck_box(ids, env, bundle)
-                    elif re.search(re.compile(r"mat_0\d\d_near"), key.lower()):
+                    elif not ocg_only and re.search(
+                        re.compile(r"mat_0\d\d_near"), key.lower()
+                    ):
                         self._parse_field(ids, env, bundle)
-                    elif "card/data" in key and "en-us/card_" in key:
+                    elif not ocg_only and "card/data" in key and "en-us/card_" in key:
                         self._parse_card_data_part(env, key.split("/")[-1], ids, bundle)
-                    elif "assets/resourcesassetbundle/wallpaper/wallpaper" in key and (
-                        "wallpapericon" in key
-                        or re.search(
-                            re.compile(r"tcg/wallpaper\d\d\d\d_\d"), key.lower()
+                    elif (
+                        not ocg_only
+                        and "assets/resourcesassetbundle/wallpaper/wallpaper" in key
+                        and (
+                            "wallpapericon" in key
+                            or re.search(
+                                re.compile(r"tcg/wallpaper\d\d\d\d_\d"), key.lower()
+                            )
                         )
                     ):
                         self._parse_wallpaper(
                             ids, env, bundle, re.search(r"\d{4}", key).group(0)
                         )
-                    elif "cointoss" in key.lower() and ".fbx" not in key.lower():
+                    elif (
+                        not ocg_only
+                        and "cointoss" in key.lower()
+                        and ".fbx" not in key.lower()
+                    ):
                         self._parse_coin(ids, env, bundle)
 
         return ids

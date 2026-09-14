@@ -2,6 +2,7 @@
 
 [![Pylint](https://github.com/Nauder/floowandereeze-and-modding-etl/actions/workflows/pylint.yml/badge.svg)](https://github.com/Nauder/floowandereeze-and-modding-etl/actions/workflows/pylint.yml)
 [![Black](https://github.com/Nauder/floowandereeze-and-modding-etl/actions/workflows/black.yml/badge.svg)](https://github.com/Nauder/floowandereeze-and-modding-etl/actions/workflows/black.yml)
+[![Tests](https://github.com/Nauder/floowandereeze-and-modding-etl/actions/workflows/tests.yml/badge.svg)](https://github.com/Nauder/floowandereeze-and-modding-etl/actions/workflows/tests.yml)
 [![License: GPL v3](https://img.shields.io/badge/License-GPLv3-blue.svg)](https://www.gnu.org/licenses/gpl-3.0)
 
 ![Python](https://img.shields.io/badge/python-3.8+-blue?logo=python&logoColor=white)
@@ -148,6 +149,8 @@ after the last push it should already be up to date.
 Modify the values in `config.json`, the configurations are:
 
 - **game_path** path to your Master Duel installation's user data, up to the 0000 folder.
+- **ocg_game_path** path to the OCG Master Duel version's user data, up to the 0000 folder. If omitted or invalid,
+OCG asset metadata extraction is skipped with a warning.
 - **num_threads** amount of threads to use when extracting data, performance varies by hardware.
 - **excluded_sleeves** sleeve assets to be ignored when building the list of sleeves. The game names sleeve materials
 the same way as animated sleeve frames, so they are removed manually.
@@ -163,6 +166,7 @@ This project uses GitHub Actions for continuous integration and code quality che
 The check requires a minimum score of 9/10.
 - **Black**: Runs on every push and pull request to the main branch to enforce consistent code formatting across the
 project.
+- **Tests**: Runs the full pytest suite on every push and pull request to the main branch.
 
 The `etl/decode` folders code is excluded from checks, as it is external code and not maintained
 in this repository.

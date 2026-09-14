@@ -6,7 +6,7 @@ import os
 from concurrent.futures import ThreadPoolExecutor
 from dataclasses import asdict
 from os.path import isfile
-from typing import Any, Dict, List, Union
+from typing import Any, Dict, List, Tuple
 from datetime import datetime
 from pathlib import Path
 
@@ -15,6 +15,7 @@ from pandas import DataFrame, Series
 from util import (
     EXCLUDED_SLEEVES,
     GAME_PATH,
+    OCG_GAME_PATH,
     IdsData,
     get_data_wrapper,
     merge_nested_dict_lists,
@@ -22,11 +23,15 @@ from util import (
     chunkify,
     NUM_THREADS,
     STREAMING_PATH,
+    OCG_STREAMING_PATH,
     COIN_SIZES,
     ICON_SIZES,
 )
 
 from .game_service import GameService
+
+AssetRoot = Tuple[bool, str, str, bool]
+AssetDirectory = Tuple[str, bool, str, bool]
 
 
 class DataService:
@@ -179,9 +184,11 @@ class DataService:
 
         # self.game_service.get_dir_data("c7", True)
 
+        game_roots = self.get_game_roots()
+
         all_dirs = [
-            [data_dir, is_streaming]
-            for is_streaming, path in [(False, GAME_PATH), (True, STREAMING_PATH)]
+            (data_dir, is_streaming, game_path, ocg_only)
+            for is_streaming, path, game_path, ocg_only in game_roots
             for _, dirs, _ in os.walk(path)
             for data_dir in dirs
         ]
@@ -206,19 +213,41 @@ class DataService:
         with open("./etl/services/temp/ids.json", "w", encoding="utf-8") as outfile:
             json.dump(asdict(ids), outfile)
 
-    def process_dirs(self, dir_list: List[List[Union[str, bool]]]) -> IdsData:
+    def get_game_roots(self) -> List[AssetRoot]:
+        """Return configured bundle roots and whether each is OCG-only."""
+        game_roots = [
+            (False, GAME_PATH, GAME_PATH, False),
+            (True, STREAMING_PATH, GAME_PATH, False),
+        ]
+        if OCG_GAME_PATH and os.path.isdir(OCG_GAME_PATH):
+            game_roots.extend(
+                [
+                    (False, OCG_GAME_PATH, OCG_GAME_PATH, True),
+                    (True, OCG_STREAMING_PATH, OCG_GAME_PATH, True),
+                ]
+            )
+        else:
+            self.logger.warning(
+                "OCG game path is missing or invalid; skipping OCG asset metadata extraction."
+            )
+
+        return game_roots
+
+    def process_dirs(self, dir_list: List[AssetDirectory]) -> IdsData:
         """Process a list of directories to extract game data.
 
         Args:
-            dir_list: List of [directory_name, is_streaming] pairs.
+            dir_list: Directory name, streaming flag, game path, and OCG-only flag.
 
         Returns:
             Extracted asset-bundle references.
         """
         local_ids = get_data_wrapper()
-        for data_dir, is_streaming in dir_list:
+        for data_dir, is_streaming, game_path, ocg_only in dir_list:
             if data_dir != "root":
-                dir_ids = self.game_service.get_dir_data(data_dir, is_streaming)
+                dir_ids = self.game_service.get_dir_data(
+                    data_dir, is_streaming, game_path, ocg_only
+                )
                 self.merge_data(local_ids, dir_ids)
                 self.processed += 1
 

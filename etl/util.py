@@ -24,12 +24,18 @@ def load_config(config_path: str = "config.json") -> Dict[str, Any]:
 config = load_config()
 
 GAME_PATH = config["game_path"]
+OCG_GAME_PATH = config.get("ocg_game_path", "")
 EXCLUDED_SLEEVES = config["excluded_sleeves"]
 NUM_THREADS = config["num_threads"]
 
-STREAMING_PATH = join(
-    GAME_PATH[:-23], "masterduel_Data", "StreamingAssets", "AssetBundle"
-)
+
+def get_streaming_path(game_path: str) -> str:
+    """Build the StreamingAssets bundle path for a game data directory."""
+    return join(game_path[:-23], "masterduel_Data", "StreamingAssets", "AssetBundle")
+
+
+STREAMING_PATH = get_streaming_path(GAME_PATH)
+OCG_STREAMING_PATH = get_streaming_path(OCG_GAME_PATH) if OCG_GAME_PATH else ""
 
 CARD_FACE_SIZE = 720896
 

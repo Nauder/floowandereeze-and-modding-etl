@@ -10,7 +10,7 @@ import os
 
 from services.data_service import DataService
 from services.decode_service import DecodeService
-from util import GAME_PATH, NUM_THREADS, clear_directory
+from util import GAME_PATH, OCG_GAME_PATH, NUM_THREADS, clear_directory
 
 
 class RedirectText:
@@ -118,8 +118,15 @@ class ETLGUI:  # pylint: disable=too-many-instance-attributes
         )
         game_path_label.grid(row=0, column=0, sticky=tk.W)
 
+        ocg_game_path_label = ttk.Label(
+            config_frame,
+            text=f"OCG Game Path: {OCG_GAME_PATH or 'Not configured'}",
+            wraplength=700,
+        )
+        ocg_game_path_label.grid(row=1, column=0, sticky=tk.W, pady=(5, 0))
+
         threads_label = ttk.Label(config_frame, text=f"Threads: {NUM_THREADS}")
-        threads_label.grid(row=1, column=0, sticky=tk.W, pady=(5, 0))
+        threads_label.grid(row=2, column=0, sticky=tk.W, pady=(5, 0))
 
         # Create checkboxes for each step
         self.steps = [
@@ -306,6 +313,9 @@ class ETLGUI:  # pylint: disable=too-many-instance-attributes
             try:
                 self.logger.info("Starting ETL process...")
                 self.logger.info('Game path: "%s"', GAME_PATH)
+                self.logger.info(
+                    'OCG game path: "%s"', OCG_GAME_PATH or "Not configured"
+                )
                 self.logger.info("Threads to use: %d", NUM_THREADS)
 
                 for (var, _), (_, func) in zip(self.checkboxes, self.steps):

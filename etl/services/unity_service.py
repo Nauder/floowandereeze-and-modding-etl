@@ -7,30 +7,33 @@ from typing import Dict, List
 from PIL import Image
 from UnityPy import load as unity_load
 
-from util import GAME_PATH, STREAMING_PATH, SortSizes
+from util import GAME_PATH, SortSizes, get_streaming_path
 
 
 class UnityService:
     """Service class for handling Unity asset operations."""
 
-    def prepare_environment(self, miss: bool, bundle: str) -> str:
+    def prepare_environment(
+        self, miss: bool, bundle: str, game_path: str = GAME_PATH
+    ) -> str:
         """Prepare the UnityPy environment path for a given bundle.
 
         Args:
             miss: Whether to use streaming assets path.
             bundle: Name of the asset bundle.
+            game_path: LocalData path for the game version containing the bundle.
 
         Returns:
             Path to the Unity asset bundle.
         """
         return (
             join(
-                STREAMING_PATH,
+                get_streaming_path(game_path),
                 bundle[:2],
                 bundle,
             )
             if miss
-            else join(GAME_PATH, bundle[:2], bundle)
+            else join(game_path, bundle[:2], bundle)
         )
 
     def prepare_unity3d_environment(self) -> str:
