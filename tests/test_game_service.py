@@ -11,7 +11,7 @@ import pytest
 
 from services.game_service import GameService
 from services.decode_service import DecodeService
-from util import IdsData
+from util import CARD_FACE_SIZE, IdsData
 
 
 ASSET_KEYS = {
@@ -132,3 +132,51 @@ def test_field_item_id_comes_from_base_texture():
     GameService()._parse_field(ids, env, "bundle")
     assert ids.field == ["bundle"]
     assert ids.field_ids == {"bundle": "1090011"}
+
+
+def test_unity3d_extracts_metadata_without_reading_unrelated_objects():
+    unrelated = _asset("MonoBehaviour")
+    unrelated.read.side_effect = AssertionError("Unrelated object was read")
+    face = _asset(
+        "Texture2D", m_Name="card_frame00", m_CompleteImageSize=CARD_FACE_SIZE
+    )
+    face.path_id = 123
+    other_texture = _asset("Texture2D", m_Name="card_frame01", m_CompleteImageSize=1)
+    other_atlas = _asset("SpriteAtlas", m_Name="OtherAtlas")
+    rect = SimpleNamespace(x=12, y=34, width=56, height=78)
+    atlas = _asset(
+        "SpriteAtlas",
+        m_Name="CardSpriteAtlas",
+        m_RenderDataMap=[("sprite", SimpleNamespace(textureRect=rect))],
+        m_PackedSpriteNamesToIndex=["attribute_icon"],
+    )
+    env = SimpleNamespace(objects=[unrelated, face, other_texture, other_atlas, atlas])
+
+    with patch("services.game_service.UnityPy.load", return_value=env):
+        ids = GameService().get_unity3d_data()
+
+    assert ids == IdsData(
+        face={"Normal": 123},
+        card_icon={"attribute_icon": {"x": 12, "y": 912, "width": 56, "height": 78}},
+    )
+    unrelated.read.assert_not_called()
+    for obj in (face, other_texture, other_atlas, atlas):
+        obj.read.assert_called_once_with()
+
+
+@pytest.mark.parametrize("asset_type", ["Texture2D", "SpriteAtlas"])
+def test_unity3d_skips_unreadable_objects_and_continues(asset_type):
+    unreadable = _asset(asset_type)
+    unreadable.read.side_effect = ValueError("Cannot read object")
+    face = _asset(
+        "Texture2D", m_Name="card_frame18", m_CompleteImageSize=CARD_FACE_SIZE
+    )
+    face.path_id = 456
+
+    with patch(
+        "services.game_service.UnityPy.load",
+        return_value=SimpleNamespace(objects=[unreadable, face]),
+    ):
+        ids = GameService().get_unity3d_data()
+
+    assert ids == IdsData(face={"Link": 456})

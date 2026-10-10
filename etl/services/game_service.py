@@ -163,6 +163,9 @@ class GameService:
         self.logger.info("Got env...")
 
         for obj in env.objects:
+            if obj.type.name not in ("Texture2D", "SpriteAtlas"):
+                continue
+
             try:
                 data = obj.read()
 
@@ -176,7 +179,7 @@ class GameService:
                 ):
                     ids.face[self.face_names[data.m_Name]] = obj.path_id
                 elif obj.type.name == "SpriteAtlas":
-                    atlas = obj.read()
+                    atlas = data
                     if atlas.m_Name != "CardSpriteAtlas":
                         continue
 

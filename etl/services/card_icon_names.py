@@ -4,7 +4,7 @@ import re
 from typing import Optional
 
 
-# Numeric suffixes follow the game's card attribute, type and icon enums.
+# Numeric suffixes identify symbols within each CardSpriteAtlas category.
 ATTRIBUTES = {
     1: "LIGHT",
     2: "DARK",
@@ -16,39 +16,36 @@ ATTRIBUTES = {
     8: "Spell",
     9: "Trap",
 }
-MONSTER_TYPES = dict(
-    enumerate(
-        [
-            "Dragon",
-            "Spellcaster",
-            "Zombie",
-            "Warrior",
-            "Beast-Warrior",
-            "Beast",
-            "Winged Beast",
-            "Fiend",
-            "Fairy",
-            "Insect",
-            "Dinosaur",
-            "Reptile",
-            "Fish",
-            "Sea Serpent",
-            "Machine",
-            "Thunder",
-            "Aqua",
-            "Pyro",
-            "Rock",
-            "Plant",
-            "Psychic",
-            "Divine-Beast",
-            "Creator God",
-            "Wyrm",
-            "Cyberse",
-            "Illusion",
-        ],
-        start=1,
-    )
-)
+# Verified against GUI_T_Icon1_TypeNN sprites in the game's CardSpriteAtlas.
+# Atlas suffixes use a different order from the card data's monster type enum.
+MONSTER_TYPES = {
+    1: "Dragon",
+    2: "Zombie",
+    3: "Fiend",
+    4: "Pyro",
+    5: "Sea Serpent",
+    6: "Rock",
+    7: "Machine",
+    8: "Fish",
+    9: "Dinosaur",
+    10: "Insect",
+    11: "Beast",
+    12: "Beast-Warrior",
+    13: "Plant",
+    14: "Aqua",
+    15: "Warrior",
+    16: "Winged Beast",
+    17: "Fairy",
+    18: "Spellcaster",
+    19: "Thunder",
+    20: "Reptile",
+    21: "Psychic",
+    22: "Wyrm",
+    23: "Cyberse",
+    24: "Divine-Beast",
+    25: "Illusion",
+    26: "Creator God",
+}
 SPELL_TRAP_ICONS = {
     0: "Normal",
     1: "Counter",
