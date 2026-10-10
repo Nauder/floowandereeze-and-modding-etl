@@ -3,6 +3,7 @@
 # pylint: disable=missing-class-docstring,missing-function-docstring,redefined-outer-name,duplicate-code
 
 import json
+import zlib
 from unittest.mock import patch
 
 from pandas import read_parquet
@@ -153,10 +154,27 @@ class TestMergeData:
         data_service.merge_data(ids, self._wrapper(ocg_sleeve=["s2"]))
         assert ids.ocg_sleeve == ["s1", "s2"]
 
+    def test_merges_sleeve_name_metadata(self, data_service):
+        ids = self._wrapper(sleeve_ids={"s1": "1070001"})
+        data_service.merge_data(
+            ids,
+            self._wrapper(
+                sleeve_ids={"s2": "1070002"},
+                ocg_sleeve_ids={"s3": "1070002"},
+                item_names={"hash": "Sleeve name"},
+            ),
+        )
+        assert ids.sleeve_ids == {"s1": "1070001", "s2": "1070002"}
+        assert ids.ocg_sleeve_ids == {"s3": "1070002"}
+        assert ids.item_names == {"hash": "Sleeve name"}
+
     def test_extends_field_list(self, data_service):
-        ids = self._wrapper(field=["f1"])
-        data_service.merge_data(ids, self._wrapper(field=["f2"]))
+        ids = self._wrapper(field=["f1"], field_ids={"f1": "1090001"})
+        data_service.merge_data(
+            ids, self._wrapper(field=["f2"], field_ids={"f2": "1090002"})
+        )
         assert ids.field == ["f1", "f2"]
+        assert ids.field_ids == {"f1": "1090001", "f2": "1090002"}
 
     def test_merges_coin_lists(self, data_service):
         ids = self._wrapper(coin={"1": ["bundle_a"]})
@@ -315,6 +333,16 @@ class TestCleanData:
 
 
 class TestWriteData:  # pylint: disable=too-few-public-methods
+    def test_real_game_item_hash(self, data_service):
+        # Captured from the English IDS_ITEM table and ProtectorIcon1072008_2.
+        data = {
+            "sleeve": ["003bf3c7"],
+            "sleeve_ids": {"003bf3c7": "1072008"},
+            "item_names": {"a98dfbef": "Yummy"},
+        }
+        sleeves = data_service.get_sleeve_dataframe(data, "sleeve", "sleeve_ids")
+        assert sleeves.iloc[0].to_dict() == {"bundle": "003bf3c7", "name": "Yummy"}
+
     def test_writes_coins_like_icons(self, data_service, tmp_path, monkeypatch):
         monkeypatch.chdir(tmp_path)
         data_path = tmp_path / "etl" / "services" / "temp"
@@ -349,11 +377,14 @@ class TestWriteData:  # pylint: disable=too-few-public-methods
         data = {
             "sleeve": ["sleeve_bundle"],
             "ocg_sleeve": ["ocg_sleeve_bundle"],
+            "sleeve_ids": {"sleeve_bundle": "1070001"},
+            "ocg_sleeve_ids": {"ocg_sleeve_bundle": "1070001"},
+            "item_names": {f"{zlib.crc32(b'ID1070001'):08x}": "Blue-Eyes White Dragon"},
             "card_names": {"Card": ["card_bundle", "description", 0]},
             "ocg_card_names": {"OCG Card": ["ocg_card_bundle", "ocg description", 1]},
             "field": {"field_bundle": {"bottom": False, "flipped": False}},
             "wallpaper": {
-                "1": {
+                "0001": {
                     "icon": "wallpaper_icon",
                     "front": "wallpaper_front",
                     "back": "wallpaper_back",
@@ -366,14 +397,29 @@ class TestWriteData:  # pylint: disable=too-few-public-methods
             "coin": {"200": ["coin_large", "coin_medium", "coin_small"]},
             "card_icon": {"card_icon": {"x": 0, "y": 0, "width": 1, "height": 1}},
         }
+        data["field_ids"] = {"field_bundle": "1090011"}
+        for item_id, label in {
+            "1090011": "The Desolate Temple",
+            "1080001": "Duelist Card Case Red",
+            "1130001": "Blue-Eyes Alternative White Dragon",
+            "100": "Player Icon",
+            "200": "Coin",
+        }.items():
+            data["item_names"][f"{zlib.crc32(f'ID{item_id}'.encode()):08x}"] = label
         with open(data_path / "data.json", "w", encoding="utf-8") as data_file:
             json.dump(data, data_file)
 
         data_service.write_data()
 
         ocg_sleeves = read_parquet(tmp_path / "data" / "sleeves_ocg.parquet")
-        assert list(ocg_sleeves.columns) == ["bundle"]
+        assert list(ocg_sleeves.columns) == ["bundle", "name"]
         assert ocg_sleeves["bundle"].tolist() == ["ocg_sleeve_bundle"]
+        assert ocg_sleeves["name"].tolist() == ["Blue-Eyes White Dragon"]
+        sleeves = read_parquet(tmp_path / "data" / "sleeves.parquet")
+        assert sleeves.iloc[0].to_dict() == {
+            "bundle": "sleeve_bundle",
+            "name": "Blue-Eyes White Dragon",
+        }
 
         ocg_cards = read_parquet(tmp_path / "data" / "cards_ocg.parquet")
         assert list(ocg_cards.columns) == [
@@ -390,10 +436,54 @@ class TestWriteData:  # pylint: disable=too-few-public-methods
         }
 
         coins = read_parquet(tmp_path / "data" / "coins.parquet")
-        assert list(coins.columns) == ["name", "large", "medium", "small"]
+        assert list(coins.columns) == [
+            "name",
+            "large",
+            "medium",
+            "small",
+            "display_name",
+        ]
         assert coins.iloc[0].to_dict() == {
             "name": "200",
             "large": "coin_large",
             "medium": "coin_medium",
             "small": "coin_small",
+            "display_name": "Coin",
         }
+        for filename, expected in [
+            ("icons", "Player Icon"),
+            ("deck_boxes", "Duelist Card Case Red"),
+            ("fields", "The Desolate Temple"),
+            ("wallpapers", "Blue-Eyes Alternative White Dragon"),
+        ]:
+            frame = read_parquet(tmp_path / "data" / f"{filename}.parquet")
+            assert frame.loc[0, "display_name"] == expected
+        wallpapers = read_parquet(tmp_path / "data" / "wallpapers.parquet")
+        assert wallpapers.iloc[0].to_dict() == {
+            "front": "wallpaper_front",
+            "back": "wallpaper_back",
+            "icon": "wallpaper_icon",
+            "name": "0001",
+            "display_name": "Blue-Eyes Alternative White Dragon",
+        }
+
+    def test_missing_names_preserve_bundle_order(self, data_service, caplog):
+        data = {
+            "sleeve": ["unknown", "known", "old"],
+            "sleeve_ids": {"unknown": "1079999", "known": "1070001"},
+            "item_names": {f"{zlib.crc32(b'ID1070001'):08x}": "Blue-Eyes"},
+        }
+        sleeves = data_service.get_sleeve_dataframe(data, "sleeve", "sleeve_ids")
+        assert sleeves["bundle"].tolist() == data["sleeve"]
+        assert sleeves["name"].isna().tolist() == [True, False, True]
+        assert sleeves.loc[1, "name"] == "Blue-Eyes"
+        assert "Missing English names for 2 sleeve bundles" in caplog.text
+
+    def test_item_names_keep_missing_entries_and_duplicates(self, data_service):
+        names = data_service.get_item_names(
+            {"item_names": {"c87857d0": "Rescue Rabbit"}},
+            [1000001, None, "9999999", "1000001"],
+            "items",
+        )
+        assert names.isna().tolist() == [False, True, True, False]
+        assert names.iloc[0] == names.iloc[3] == "Rescue Rabbit"

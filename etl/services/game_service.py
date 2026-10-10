@@ -16,6 +16,7 @@ from util import (
 )
 
 from .unity_service import UnityService
+from .decode_service import DecodeService
 
 
 class GameService:
@@ -124,6 +125,10 @@ class GameService:
                         self._parse_field(ids, env, bundle)
                     elif not ocg_only and "card/data" in key and "en-us/card_" in key:
                         self._parse_card_data_part(env, key.split("/")[-1], ids, bundle)
+                    elif not ocg_only and key.lower().endswith(
+                        "/texts/en-us/ids_item.bytes"
+                    ):
+                        self._parse_item_names(ids, env)
                     elif (
                         not ocg_only
                         and "assets/resourcesassetbundle/wallpaper/wallpaper" in key
@@ -243,6 +248,9 @@ class GameService:
             obj_data = obj.read()
             if obj.type.name == "Texture2D" and "ProtectorIcon" in obj_data.m_Name:
                 ids.sleeve.append(bundle)
+                match = re.match(r"ProtectorIcon(\d+)", obj_data.m_Name)
+                if match:
+                    ids.sleeve_ids[bundle] = match.group(1)
 
     def _parse_ocg_sleeve(self, ids: IdsData, env: Any, bundle: str) -> None:
         """Parse OCG sleeve data from Unity environment.
@@ -256,6 +264,21 @@ class GameService:
             obj_data = obj.read()
             if obj.type.name == "Texture2D" and "ProtectorIcon" in obj_data.m_Name:
                 ids.ocg_sleeve.append(bundle)
+                match = re.match(r"ProtectorIcon(\d+)", obj_data.m_Name)
+                if match:
+                    ids.ocg_sleeve_ids[bundle] = match.group(1)
+
+    def _parse_item_names(self, ids: IdsData, env: Any) -> None:
+        """Extract English accessory names for joining to item IDs."""
+        for obj in env.objects:
+            if obj.type.name == "TextAsset":
+                data = obj.read()
+                if data.m_Name.upper() == "IDS_ITEM":
+                    ids.item_names.update(
+                        DecodeService.decode_item_names(
+                            data.m_Script.encode("utf-8", "surrogateescape")
+                        )
+                    )
 
     def _parse_deck_box(self, ids: IdsData, env: Any, bundle: str) -> None:
         """Parse deck box data from Unity environment.
@@ -311,6 +334,8 @@ class GameService:
                 and obj.type.name == "Texture2D"
             ):
                 ids.field.append(bundle)
+                field_number = re.match(r"mat_(\d+)_", obj_data.m_Name.lower())
+                ids.field_ids[bundle] = str(1090000 + int(field_number.group(1)))
 
     def _parse_wallpaper(
         self, ids: IdsData, env: Any, bundle: str, wallpaper: str

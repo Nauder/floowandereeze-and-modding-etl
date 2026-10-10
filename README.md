@@ -28,7 +28,7 @@ references to the bundles containing the data, which can be used for modding.
   - Deck Boxes.
   - Fields.
   - Player Icons.
-  - Sleeves.
+  - Sleeves, including English display names.
 - **Transforms** raw game data into a structured format, and cleans bad data.
 - **Loads** the processed data into Parquet files for efficient storage and querying.
 
@@ -89,6 +89,18 @@ of each field has not been automated yet.
 
 Finally, the data will be available as Parquet files inside the `data/` folder, as well as a `version.txt` file
 containing the date of the last script run.
+
+`sleeves.parquet` and `sleeves_ocg.parquet` contain `bundle` and `name` columns.
+Names come from the global game's English `IDS_ITEM` text table, matched to sleeve
+texture IDs. Missing translations are exported as null with a warning; their bundle
+references remain available. Run extraction again to populate names in older output.
+
+Player icons, deck boxes, fields, coins, wallpapers, and card icons also include `display_name`.
+Their existing `name` columns retain numeric IDs or atlas sprite keys. Accessory
+names use the English item table; untranslated items have null names and a warning.
+Card icon labels are derived from recognized atlas symbols (attributes, monster
+types, Spell/Trap icons, rarities, Link ratings/arrows, and limits), rather than
+localized item text. Unrecognized future symbols receive null labels.
 
 ## Testing
 

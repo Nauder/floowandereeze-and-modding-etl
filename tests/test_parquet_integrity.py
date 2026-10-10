@@ -132,10 +132,17 @@ class TestIcons:
         assert len(icons) > 0
 
     def test_columns(self, icons):
-        assert set(icons.columns) == {"name", "large", "medium", "small"}
+        assert set(icons.columns) == {
+            "name",
+            "large",
+            "medium",
+            "small",
+            "display_name",
+        }
 
     def test_no_nulls(self, icons):
-        assert not icons.isna().any().any()
+        assert not icons.drop(columns="display_name").isna().any().any()
+        assert icons["display_name"].notna().any()
 
     def test_name_is_numeric(self, icons):
         assert icons["name"].apply(lambda x: str(x).isdigit()).all()
@@ -165,10 +172,11 @@ class TestDeckBoxes:
         assert len(deck_boxes) > 0
 
     def test_columns(self, deck_boxes):
-        assert set(deck_boxes.columns) == set(self.SIZE_COLS) | {"name"}
+        assert set(deck_boxes.columns) == set(self.SIZE_COLS) | {"name", "display_name"}
 
     def test_no_nulls(self, deck_boxes):
-        assert not deck_boxes.isna().any().any()
+        assert not deck_boxes.drop(columns="display_name").isna().any().any()
+        assert deck_boxes["display_name"].notna().any()
 
     def test_all_size_bundles_valid(self, deck_boxes):
         for col in self.SIZE_COLS:
@@ -188,10 +196,14 @@ class TestSleeves:
         assert len(sleeves) > 0
 
     def test_columns(self, sleeves):
-        assert list(sleeves.columns) == ["bundle"]
+        assert list(sleeves.columns) == ["bundle", "name"]
 
     def test_no_nulls(self, sleeves):
-        assert not sleeves.isna().any().any()
+        assert not sleeves["bundle"].isna().any()
+
+    def test_has_display_names(self, sleeves):
+        assert sleeves["name"].notna().any()
+        assert sleeves["name"].dropna().map(lambda name: isinstance(name, str)).all()
 
     def test_bundle_format(self, sleeves):
         assert sleeves["bundle"].apply(_is_bundle).all()
@@ -202,10 +214,10 @@ class TestSleeves:
 
 class TestOCGSleeves:
     def test_columns(self, ocg_sleeves):
-        assert list(ocg_sleeves.columns) == ["bundle"]
+        assert list(ocg_sleeves.columns) == ["bundle", "name"]
 
     def test_no_nulls(self, ocg_sleeves):
-        assert not ocg_sleeves.isna().any().any()
+        assert not ocg_sleeves["bundle"].isna().any()
 
     def test_bundle_format(self, ocg_sleeves):
         assert ocg_sleeves["bundle"].apply(_is_bundle).all()
@@ -221,10 +233,17 @@ class TestWallpapers:
         assert len(wallpapers) > 0
 
     def test_columns(self, wallpapers):
-        assert set(wallpapers.columns) == {"front", "back", "icon", "name"}
+        assert set(wallpapers.columns) == {
+            "front",
+            "back",
+            "icon",
+            "name",
+            "display_name",
+        }
 
     def test_no_nulls(self, wallpapers):
-        assert not wallpapers.isna().any().any()
+        assert not wallpapers.drop(columns="display_name").isna().any().any()
+        assert wallpapers["display_name"].notna().any()
 
     def test_bundle_format(self, wallpapers):
         for col in self.BUNDLE_COLS:
@@ -257,10 +276,17 @@ class TestCoins:
         assert len(coins) > 0
 
     def test_columns(self, coins):
-        assert set(coins.columns) == {"name", "large", "medium", "small"}
+        assert set(coins.columns) == {
+            "name",
+            "large",
+            "medium",
+            "small",
+            "display_name",
+        }
 
     def test_no_nulls(self, coins):
-        assert not coins.isna().any().any()
+        assert not coins.drop(columns="display_name").isna().any().any()
+        assert coins["display_name"].notna().any()
 
     def test_name_is_numeric(self, coins):
         assert coins["name"].apply(lambda x: str(x).isdigit()).all()
@@ -278,10 +304,18 @@ class TestCardIcons:
         assert len(card_icons) > 0
 
     def test_columns(self, card_icons):
-        assert set(card_icons.columns) == {"name", "x", "y", "width", "height"}
+        assert set(card_icons.columns) == {
+            "name",
+            "x",
+            "y",
+            "width",
+            "height",
+            "display_name",
+        }
 
     def test_no_nulls(self, card_icons):
-        assert not card_icons.isna().any().any()
+        assert not card_icons.drop(columns="display_name").isna().any().any()
+        assert card_icons["display_name"].notna().any()
 
     def test_non_negative_coordinates(self, card_icons):
         assert (card_icons["x"] >= 0).all()
@@ -326,4 +360,7 @@ class TestMetadata:
 
 class TestFields:  # pylint: disable=too-few-public-methods
     def test_columns(self, fields):
-        assert set(fields.columns) == {"bottom", "flipped", "bundle"}
+        assert set(fields.columns) == {"bottom", "flipped", "bundle", "display_name"}
+
+    def test_display_names(self, fields):
+        assert fields["display_name"].notna().any()

@@ -3,6 +3,7 @@
 import json
 import logging
 import os
+import zlib
 from concurrent.futures import ThreadPoolExecutor
 from dataclasses import asdict
 from os.path import isfile
@@ -29,6 +30,7 @@ from util import (
 )
 
 from .game_service import GameService
+from .card_icon_names import get_card_icon_name
 
 AssetRoot = Tuple[bool, str, str, bool]
 AssetDirectory = Tuple[str, bool, str, bool]
@@ -264,10 +266,14 @@ class DataService:
         ids.ocg_card_id.update(result.ocg_card_id)
         ids.sleeve.extend(result.sleeve)
         ids.ocg_sleeve.extend(result.ocg_sleeve)
+        ids.sleeve_ids.update(result.sleeve_ids)
+        ids.ocg_sleeve_ids.update(result.ocg_sleeve_ids)
+        ids.item_names.update(result.item_names)
         merge_nested_dict_lists(ids, result)
         merge_nested_dicts(ids.deck_box, result.deck_box)
         merge_nested_dicts(ids.wallpaper, result.wallpaper)
         ids.field.extend(result.field)
+        ids.field_ids.update(result.field_ids)
         ids.card_data.update(result.card_data)
         ids.face.update(result.face)
 
@@ -403,12 +409,12 @@ class DataService:
             data = json.load(data_file)
 
             self.logger.info("Writing Sleeves...")
-            sleeves = DataFrame()
-            sleeves.insert(0, "bundle", data["sleeve"])
+            sleeves = self.get_sleeve_dataframe(data, "sleeve", "sleeve_ids")
             sleeves.to_parquet("./data/sleeves.parquet")
             self.logger.info("Writing OCG Sleeves...")
-            ocg_sleeves = DataFrame()
-            ocg_sleeves.insert(0, "bundle", data["ocg_sleeve"])
+            ocg_sleeves = self.get_sleeve_dataframe(
+                data, "ocg_sleeve", "ocg_sleeve_ids"
+            )
             ocg_sleeves.to_parquet("./data/sleeves_ocg.parquet")
 
             self.logger.info("Writing Cards...")
@@ -462,6 +468,11 @@ class DataService:
                 "bottom",
                 Series([field["bottom"] for field in data["field"].values()]),
             )
+            fields["display_name"] = self.get_item_names(
+                data,
+                [data.get("field_ids", {}).get(bundle) for bundle in fields["bundle"]],
+                "fields",
+            )
             fields.to_parquet("./data/fields.parquet")
 
             self.logger.info("Writing Wallpapers...")
@@ -483,6 +494,9 @@ class DataService:
                 Series(
                     [wallpaper["front"] for wallpaper in data["wallpaper"].values()]
                 ),
+            )
+            wallpapers["display_name"] = self.get_item_names(
+                data, [1130000 + int(key) for key in data["wallpaper"]], "wallpapers"
             )
             wallpapers.to_parquet("./data/wallpapers.parquet")
 
@@ -534,6 +548,9 @@ class DataService:
                 "small",
                 Series([deck_box["small"] for deck_box in data["deck_box"].values()]),
             )
+            boxes["display_name"] = self.get_item_names(
+                data, [1080000 + int(key) for key in data["deck_box"]], "deck boxes"
+            )
             boxes.to_parquet("./data/deck_boxes.parquet")
 
             self.logger.info("Writing Icons...")
@@ -545,6 +562,9 @@ class DataService:
             icons.insert(0, "medium", Series([icon["medium"] for icon in sorted_icons]))
             icons.insert(0, "large", Series([icon["large"] for icon in sorted_icons]))
             icons.insert(0, "name", data["icon"].keys())
+            icons["display_name"] = self.get_item_names(
+                data, data["icon"], "player icons"
+            )
             icons.to_parquet("./data/icons.parquet")
 
             self.logger.info("Writing Card Metadata...")
@@ -562,6 +582,7 @@ class DataService:
             coins.insert(0, "medium", Series([coin["medium"] for coin in sorted_coins]))
             coins.insert(0, "large", Series([coin["large"] for coin in sorted_coins]))
             coins.insert(0, "name", data["coin"].keys())
+            coins["display_name"] = self.get_item_names(data, data["coin"], "coins")
             coins.to_parquet("./data/coins.parquet")
 
             self.logger.info("Writing Card Icons...")
@@ -583,6 +604,9 @@ class DataService:
                 0, "x", Series([icon["x"] for icon in data["card_icon"].values()])
             )
             card_icons.insert(0, "name", data["card_icon"].keys())
+            card_icons["display_name"] = Series(
+                [get_card_icon_name(key) for key in data["card_icon"]], dtype="string"
+            )
             card_icons.to_parquet("./data/card_icons.parquet")
 
             self.logger.info("Updating Version...")
@@ -592,3 +616,34 @@ class DataService:
     def create_temp_folders(self) -> None:
         path = Path("./etl/services/temp/ids.json")
         path.parent.mkdir(parents=True, exist_ok=True)
+
+    def get_sleeve_dataframe(
+        self, data: Dict[str, Any], sleeve_key: str, id_key: str
+    ) -> DataFrame:
+        """Join bundle references to English names using hashed item IDs.
+
+        Keep sleeves with missing translations, using null rather than inventing names.
+        Older intermediate JSON without name metadata remains usable.
+        """
+        names = self.get_item_names(
+            data,
+            [data.get(id_key, {}).get(bundle) for bundle in data[sleeve_key]],
+            f"{sleeve_key} bundles",
+        )
+        return DataFrame({"bundle": data[sleeve_key], "name": names})
+
+    def get_item_names(
+        self, data: Dict[str, Any], item_ids: Any, asset_type: str
+    ) -> Series:
+        """Resolve English names in row order, preserving missing translations as null."""
+        names = []
+        for item_id in item_ids:
+            name = None
+            if item_id is not None:
+                item_key = f"{zlib.crc32(f'ID{item_id}'.encode('utf-8')):08x}"
+                name = data.get("item_names", {}).get(item_key)
+            names.append(name)
+        missing = sum(name is None for name in names)
+        if missing:
+            self.logger.warning("Missing English names for %d %s", missing, asset_type)
+        return Series(names, dtype="string")
