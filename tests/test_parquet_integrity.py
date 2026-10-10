@@ -358,9 +358,26 @@ class TestMetadata:
         assert self.REQUIRED_FILES <= set(metadata["name"])
 
 
-class TestFields:  # pylint: disable=too-few-public-methods
+class TestFields:
+    def test_not_empty(self, fields):
+        assert len(fields) > 0
+
     def test_columns(self, fields):
-        assert set(fields.columns) == {"bottom", "flipped", "bundle", "display_name"}
+        required = {"bottom", "flipped", "bundle"}
+        # Older exports do not include display names.
+        assert set(fields.columns) in (required, required | {"display_name"})
+
+    def test_no_nulls(self, fields):
+        assert not fields[["bottom", "flipped", "bundle"]].isna().any().any()
+
+    def test_bundle_format(self, fields):
+        assert fields["bundle"].apply(_is_bundle).all()
+
+    def test_orientation_types(self, fields):
+        for column in ["bottom", "flipped"]:
+            assert pd.api.types.is_bool_dtype(fields[column])
 
     def test_display_names(self, fields):
+        if "display_name" not in fields.columns:
+            pytest.skip("This fields export does not include display names")
         assert fields["display_name"].notna().any()
