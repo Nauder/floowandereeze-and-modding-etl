@@ -29,6 +29,7 @@ from util import (
     ICON_SIZES,
 )
 
+from .summon_animation import cutin_dataframe
 from .game_service import GameService
 from .card_icon_names import get_card_icon_name
 
@@ -262,6 +263,7 @@ class DataService:
             ids: Main ID collection to merge into.
             result: Data to merge.
         """
+        ids.summon_animation.update(result.summon_animation)
         ids.card_id.update(result.card_id)
         ids.ocg_card_id.update(result.ocg_card_id)
         ids.sleeve.extend(result.sleeve)
@@ -391,6 +393,9 @@ class DataService:
                 }
             )
 
+            ids["summon_card_names"] = {
+                str(card_id): values[1] for card_id, values in id_names.items()
+            }
             ids["card_names"] = updated_card_id
             ids["ocg_card_names"] = updated_ocg_card_id
 
@@ -608,6 +613,11 @@ class DataService:
                 [get_card_icon_name(key) for key in data["card_icon"]], dtype="string"
             )
             card_icons.to_parquet("./data/card_icons.parquet")
+
+            self.logger.info("Writing Summoning Animations...")
+            cutin_dataframe(data).to_parquet(
+                "./data/summon_animations.parquet", index=False
+            )
 
             self.logger.info("Updating Version...")
             with open("./data/version.txt", "w", encoding="utf-8") as file:

@@ -322,3 +322,6 @@ legacy/data.json
 \!CryptoKey.txt
 etl/services/temp/*
 local
+
+# Local implementation planning document
+docs/floo-qt-summon-animation-plan.md
