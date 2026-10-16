@@ -24,6 +24,7 @@ references to the bundles containing the data, which can be used for modding.
   - Card Arts.
   - Card Descriptions and Names (en-us versions).
   - Card Faces.
+  - Card summoning cut-ins (Spine components, variants, and bundle references).
   - CARD_* Files (en-us versions).
   - Deck Boxes.
   - Fields.
@@ -101,6 +102,23 @@ names use the English item table; untranslated items have null names and a warni
 Card icon labels are derived from recognized atlas symbols (attributes, monster
 types, Spell/Trap icons, rarities, Link ratings/arrows, and limits), rather than
 localized item text. Unrecognized future symbols receive null labels.
+
+## Card summoning animation metadata
+
+`data/summon_animations.parquet` contains one row per card cut-in container asset,
+including card ID/name (null for shared dependencies), installation and asset
+region, source location, quality,
+scale, component role, bundle, serialized file, object ID, and object name. Texture
+dimensions, Spine version/animation names, atlas page names, and external CAB
+references are included where available. Object IDs are decimal strings; array
+fields are JSON strings. No animation payloads or image pixels are exported.
+
+SD/HD profiles, multi-page textures, shared timeline components, and global/OCG
+origins remain distinct. Missing names or unreadable payloads retain their references.
+Universal summon effects and special-win animations are outside this dataset.
+The committed global snapshot has 10,253 component rows for 518 cards.
+Run the usual pipeline to refresh it; old intermediate files produce the same
+schema with zero rows. Existing Parquet schemas remain unchanged.
 
 ## Testing
 

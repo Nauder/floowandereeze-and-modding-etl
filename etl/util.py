@@ -44,6 +44,7 @@ CARD_FACE_SIZE = 720896
 class IdsData:
     """Collected asset-bundle references found while extracting game data."""
 
+    summon_animation: Dict[str, Dict[str, Any]] = dataclass_field(default_factory=dict)
     card_id: Dict[str, str] = dataclass_field(default_factory=dict)
     ocg_card_id: Dict[str, str] = dataclass_field(default_factory=dict)
     sleeve: List[str] = dataclass_field(default_factory=list)

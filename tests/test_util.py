@@ -109,6 +109,7 @@ class TestMergeNestedDictLists:
 class TestGetDataWrapper:
     def test_returns_ids_data_dataclass(self):
         expected = {
+            "summon_animation",
             "card_id",
             "ocg_card_id",
             "sleeve",

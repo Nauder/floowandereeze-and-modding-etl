@@ -15,6 +15,7 @@ from util import (
     get_streaming_path,
 )
 
+from .summon_animation import extract_cutin_metadata
 from .unity_service import UnityService
 from .decode_service import DecodeService
 
@@ -59,7 +60,7 @@ class GameService:
             data_dir: Directory to extract data from.
             is_streaming: Whether to use streaming assets path.
             game_path: LocalData path for the game version being scanned.
-            ocg_only: Whether to extract only OCG card and sleeve metadata.
+            ocg_only: Whether to extract OCG cards, sleeves, and summon cut-ins.
 
         Returns:
             Extracted asset-bundle references.
@@ -72,6 +73,9 @@ class GameService:
                     self.unity_service.prepare_environment(
                         is_streaming, bundle, game_path
                     )
+                )
+                ids.summon_animation.update(
+                    extract_cutin_metadata(env, bundle, is_streaming, ocg_only)
                 )
                 for key in env.container.keys():
                     if data_dir.lower() == "c7":
